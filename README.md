@@ -1,9 +1,29 @@
 ## SPECS
-- [x] smart device
+- [ ] Smart device
     - [x] ESP32
     - [x] DHT22
     - [x] MQ2
     - [x] MQ135
+
+- [ ] Data proxy
+
+- [ ] Data mgmt system
+
+- [ ] Data Analytics
+
+### Additional Components
+- [ ] Outdoor temperature value from open API Weather
+    - [ ] Store in influx 
+    - [ ] Visualization through Grafana
+
+- [ ] Telegram bot
+
+- [ ] Web dashboard
+    - [ ] Monitor multiple air quality stations at the same time
+    - [ ] Register new device
+    - [ ] Config parameters
+    - [ ] Visualize position on a map
+    - [ ] Access data through grafana
 ## CONTROLLER AND HARDWARE 
 - ESP32 dev module
 - MQ2 gas and smoke sensor
