@@ -1,8 +1,5 @@
 ## SPECS
-[]
-[]
-[]
-[]
+- [x] smart device
 ## CONTROLLER AND HARDWARE 
 - ESP32 dev module
 - MQ2 gas and smoke sensor
