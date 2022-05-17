@@ -1,6 +1,6 @@
 ## SPECS
 - [x] smart device
-    - [ ] ESP32
+    - ( ) ESP32
     - [ ] DHT22
     - [ ] MQ2
     - [ ] MQ135
