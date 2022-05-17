@@ -1,9 +1,9 @@
 ## SPECS
 - [x] smart device
-    - ( ) ESP32
-    - [ ] DHT22
-    - [ ] MQ2
-    - [ ] MQ135
+    - [x] ESP32
+    - [x] DHT22
+    - [x] MQ2
+    - [x] MQ135
 ## CONTROLLER AND HARDWARE 
 - ESP32 dev module
 - MQ2 gas and smoke sensor
