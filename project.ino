@@ -1,9 +1,6 @@
 #include <WiFi.h>
-#include <PubSubClient.h>
-#include <Ethernet.h>
 #include <DHT.h>
 #include <MQUnifiedsensor.h>
-
 #include <InfluxDbClient.h>
 
 /*#define INFLUXDB_URL "https://eu-central-1-1.aws.cloud2.influxdata.com"
@@ -27,7 +24,15 @@
 #define         Voltage_Resolution      (3.3) // 3V3, 5 iso high
 #define         ADC_Bit_Resolution      (12) 
 #define         RatioMQ135CleanAir      (3.6) 
-#define         RatioMQ2CleanAir        (9.83) 
+#define         RatioMQ2CleanAir        (9.83)
+#define         WINDOW                  (5)
+
+//*********************************SETTINGS**********************************************
+int SAMPLE_FREQ = 10000;
+int n_sample = 0;
+int shifting_index = 0;
+float array_CO[WINDOW] = {-1, -1, -1, -1, -1};//-1 is not a valid argument for the PPM 
+uint8_t protocol = 0; //0 is MQTT, 1 is COAP
 
 //*********************************SENSORS***********************************************
 //dht sensor define 
@@ -43,9 +48,17 @@ char ssid[] = "SbalziOrmonaliA2.4G";
 char pwd[] = "Lovegang126";
 
 int status = WL_IDLE_STATUS;
+
+//********************************UTILITY FUNCTION***************************************
+float average(float *arr, int len){
+    float sum = 0;  
+    for(int i = 0; i<len; i++) 
+            sum += arr[i];
+    return sum / len;
+}
+
 //Point sensor("temp_hum");
-void setup()
-{
+void setup(){
     //serial output
 	Serial.begin(115200);
     //dht sensor
@@ -62,8 +75,7 @@ void setup()
     float calcR0MQ2 = 0;
     float calcR0MQ135 = 0;
     Serial.println("Sensors calibration");
-    for(int i = 0; i<10; i++)
-    {   
+    for(int i = 0; i<10; i++){   
         MQ135.update();
         MQ2.update(); // Update data, the arduino will read the voltage from the analog pin
         calcR0MQ2 += MQ2.calibrate(RatioMQ2CleanAir);
@@ -79,8 +91,8 @@ void setup()
     if(isinf(calcR0MQ135)) {Serial.println("Warning: Conection issue, R0_MQ135 is infinite (Open circuit detected) please check your wiring and supply"); while(1);}
     if(calcR0MQ135 == 0){Serial.println("Warning: Conection issue found, R0_MQ135 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
 
-	while (status != WL_CONNECTED)
-	{
+    //WIFI CONNECTION
+	while (status != WL_CONNECTED){
 		Serial.print("Attempting to connect to: ");
 		Serial.println(ssid);
 		status = WiFi.begin(ssid, pwd);
@@ -103,53 +115,48 @@ void setup()
     delay(250);
 }
 
-    void loop(){
+void loop(){
     float t = dht.readTemperature();
     float h = dht.readHumidity();
     // Check if any reads failed and exit early (to try again).
     if (isnan(t) || isnan(h)) {    
         Serial.println("Failed to read from DHT sensor!");
         //sensor.clearFields();
-        delay(10000);
+        delay(SAMPLE_FREQ);
         return;
     }
 
     MQ2.update(); // Update data
 
     MQ135.update(); // Update data
-    
+
     MQ135.setA(605.18); MQ135.setB(-3.937); // Configure the equation to calculate CO concentration value
     float CO = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+    array_CO[shifting_index] = CO;
 
     MQ135.setA(77.255); MQ135.setB(-3.18); //Configure the equation to calculate Alcohol concentration value
-    float Alcohol = MQ135.readSensor(); // SSensor will read PPM concentration using the model, a and b values set previously or from the setup
+    float alcohol = MQ135.readSensor(); // SSensor will read PPM concentration using the model, a and b values set previously or from the setup
 
     MQ135.setA(110.47); MQ135.setB(-2.862); // Configure the equation to calculate CO2 concentration value
-    float CO2 = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+    float CO2 = MQ135.readSensor()+400; // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
     MQ135.setA(44.947); MQ135.setB(-3.445); // Configure the equation to calculate Toluen concentration value
-    float Toluen = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+    float toluen = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
     MQ135.setA(102.2 ); MQ135.setB(-2.473); // Configure the equation to calculate NH4 concentration value
     float NH4 = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
     MQ135.setA(34.668); MQ135.setB(-3.369); // Configure the equation to calculate Aceton concentration value
-    float Aceton = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+    float aceton = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
-    /*
-    We have added 400 PPM because when the library is calibrated it assumes the current state of the
-    air as 0 PPM, and it is considered today that the CO2 present in the atmosphere is around 400 PPM.
-    */
-    Serial.print("Temperature: ");
-    Serial.println(t);
-    Serial.print("Humidity: ");
-    Serial.println(h);
-    Serial.print("Smoke: "); Serial.println(MQ2.readSensor());
-    Serial.print("CO: "); Serial.println(CO);
-    Serial.print("CO2: "); Serial.println(CO2 + 400); 
-    Serial.print("Toulene: "); Serial.println(Toluen); 
-    Serial.print("NH4: "); Serial.println(NH4); 
-    Serial.print("Aceton: "); Serial.println(Aceton);
-    Serial.println("");
-    delay(11000);
+    shifting_index += 1;
+    shifting_index %= WINDOW;
+
+    if(n_sample < WINDOW)
+        n_sample += 1;
+
+    //send data
+    average(array_CO, n_sample);       
+
+    delay(SAMPLE_FREQ);
 }
