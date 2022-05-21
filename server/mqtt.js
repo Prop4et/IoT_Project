@@ -1,44 +1,50 @@
 const mqtt = require('mqtt')
-
+const config = require('./config')
 // ----- MQTT setup -----
-const hostMqtt = '127.0.0.1'; // Broker Mosquitto, should i make mine?
-const portMqtt = '1883'; // listen port for MQTT
-const clientId = 'mqtt_client';
+const hostMqtt = config.host; // Broker Mosquitto, should i make mine?
+const portMqtt = config.port; // listen port for MQTT
+const clientId = `mqtt_${Math.random().toString(16).slice(3)}`;
 const connectUrl = `mqtt://${hostMqtt}:${portMqtt};` // url for connection
 
 // connection on Mosquitto broker
 var client = null;
-const topicMqtt = 'sensor/3030/';
-const subtopics = ["tempterature", "humidity", "RSS", "AQI", "smoke", "CO", "CO2", "alcohol", "toluen", "NH4", "aceton", "id", "gps"]; //ex channels
+const topicMqtt = 'sensor/';
+//temp_hum -> temperature and humidity
+//info -> RSS, id, gps
+//AQI -> AQI <opt: smokeV>
+//PPM -> smoke, CO, CO2, alcohol, toluen, NH4, aceton
+const subtopics = ["temp_hum", "info", 'AQI', 'PPM']
 
-
-function init() {
+function initialize() {
+    console.log(connectUrl);
     client = mqtt.connect(connectUrl, {
         clientId,
         clean: true,
         connectTimeout: 5000,
-        username: 'iot2022',
-        password: 'mqtt2022*',
-        reconnectPeriod: 2000,
+        username: config.username,
+        password: config.password,
+        reconnectPeriod: 1000,
     });
-
     // mqtt event handlers
     client.on('connect', () => {
         console.log(`MQTT client up and running on port: ${portMqtt}.`);
         console.log('---------------------');
         console.log('Topics: ');
         subtopics.forEach(subtopic => {
-            client.subscribe([subtopic], () => {
-                console.log(`Subscribed to: '${subtopic}'`);
-            });
-        });
+            client.subscribe(topicMqtt+[subtopic], () => {
+                console.log(`Subscribed to: '${topicMqtt}${subtopic}'`);
+            })
+        })
         console.log('---------------------');
     });
 
     client.on('message', (topic, payload) => {
         topic_exists = false
         subtopics.forEach(subtopic => {
-            if (topic == subtopic) topic_exitsts = true
+            sarr = topic.split('/');
+            if (sarr[sarr.length - 1] === subtopic){
+                topic_exists = true;
+            }
         });
 
         if(!topic_exists){
@@ -46,54 +52,37 @@ function init() {
             return;
         }
 
-        if(topic === (topicMqtt + id) || topic === (topicMqtt + "gps")){
+        if(topic === (topicMqtt + 'AQI')){
             res = payload.toString();
+        }else{
+            res = JSON.parse(payload.toString());
         }
-        else{
-            res = parseFloat(pyload.toString()).toFixed(2);
-        }
 
-        if (value == NaN) {
-            console.error('MQTT: NaN value found with on the subscription', topic)
-        } else {
-
-            sarr = topic.split('/');
-
-            switch(sarr[sarr.length - 1]){
-                case 'temperature': console.log("MQTT: Temperature>", value + "°");
-                break;
-                case 'humidity': console.log("MQTT: Humidity>", value + "%");
-                break;
-                case 'RSS': console.log("MQTT: WiFi RSS>", RSS + "db");
-                break;
-                case 'AQI': console.log("MQTT: Air Quality Index>", value+"");
-                break;
-                case 'gps': {
-                    coords = value.split("/\s*, \s*/");
-                    console.log("MOTT: GPS Coordinates>", coords[0]+", "+coords[1]);
-                }
-                break;
-                case 'CO': console.log("MQTT: CO> ", value+" PPM");
-                break;
-                case 'CO2': console.log("MQTT: CO2> ", value+" PPM");
-                break;
-                case 'smoke': console.log("MQTT: Smoke> ", value+" PPM");
-                break;
-                case 'alcohol': console.log("MQTT: Alcohol> ", value+" PPM");
-                break;
-                case 'toluen': console.log("MQTT: Toluen> ", value+" PPM");
-                break;
-                case 'NH4': console.log("MQTT: NH4> ", value+" PPM");
-                break;
-                case 'aceton': console.log("MQTT: Aceton> ", value+" PPM");
-                break;
-                case 'id': console.log("MQTT: Device ID>", value+"");
-                break;
-                default:
-                    console.log('MQTT: topic not supported:', sarr);
-                break;
+        sarr = topic.split('/');
+        switch(sarr[sarr.length - 1]){
+            case 'info': console.log("MQTT: Info> ID: ", res['id'] + " Signal: " +res['RSS'] + "db Coordinates: "+ res['gps'].lat+"°, "+res['gps'].lon+"°");
+            break;
+            case 'temp_hum': console.log("MQTT: Temperature and Humidity>", res['temperature'] + "° " + res['humidity']+"%");
+            break;
+            case 'AQI': console.log("MQTT: Air Quality Index>", res+"");
+            break;
+            case 'PPM': {
+                console.log("MQTT: PPM> \n\t" +
+                                'Smoke: ' + res['smoke'] +"\n\t" +
+                                'CO: ' + res['CO'] +"\n\t" +
+                                'CO2: ' + res['CO2'] +"\n\t" +
+                                'NH4: ' + res['NH4'] +"\n\t" +
+                                'Alchool: ' + res['alcohol'] +"\n\t" +
+                                'Toluen: ' + res['toluen'] +"\n\t" +
+                                'Aceton: ' + res['aceton']
+                            );
             }
+            break;
+            default:
+                console.log('MQTT: topic not supported:', sarr[sarr.length - 1]);
+            break;
         }
+    
     });
 }
 
@@ -109,6 +98,6 @@ function toSensor(data) {
 }
 
 module.exports = {
-    init,
+    initialize,
     toSensor,
 }
