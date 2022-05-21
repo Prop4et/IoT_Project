@@ -9,11 +9,11 @@ const connectUrl = `mqtt://${hostMqtt}:${portMqtt};` // url for connection
 // connection on Mosquitto broker
 var client = null;
 const topicMqtt = 'sensor/';
-//temp_hum -> temperature and humidity
 //info -> RSS, id, gps
-//AQI -> AQI <opt: smokeV>
+//temp_hum -> temperature and humidity
+//MQ2 -> AQI smoke
 //PPM -> smoke, CO, CO2, alcohol, toluen, NH4, aceton
-const subtopics = ["temp_hum", "info", 'AQI', 'PPM']
+const subtopics = ["temp_hum", "info", 'MQ2', 'PPM']
 
 function initialize() {
     console.log(connectUrl);
@@ -52,11 +52,7 @@ function initialize() {
             return;
         }
 
-        if(topic === (topicMqtt + 'AQI')){
-            res = payload.toString();
-        }else{
-            res = JSON.parse(payload.toString());
-        }
+        res = JSON.parse(payload.toString());
 
         sarr = topic.split('/');
         switch(sarr[sarr.length - 1]){
@@ -64,11 +60,10 @@ function initialize() {
             break;
             case 'temp_hum': console.log("MQTT: Temperature and Humidity>", res['temperature'] + "° " + res['humidity']+"%");
             break;
-            case 'AQI': console.log("MQTT: Air Quality Index>", res+"");
+            case 'MQ2': console.log("MQTT: MQ2 params>", +"AQI: " + res["AQI"] + " smoke: " + res["smoke"]);
             break;
             case 'PPM': {
                 console.log("MQTT: PPM> \n\t" +
-                                'Smoke: ' + res['smoke'] +"\n\t" +
                                 'CO: ' + res['CO'] +"\n\t" +
                                 'CO2: ' + res['CO2'] +"\n\t" +
                                 'NH4: ' + res['NH4'] +"\n\t" +
@@ -91,10 +86,10 @@ function toSensor(data) {
         console.log('Error, no sensors connected.')
     }
 
-    client.publish("sensor/3030/freq", data.sampleFrequency.toString())
-    client.publish("sensor/3030/ming", data.minGas.toString())
-    client.publish("sensor/3030/maxg", data.maxGas.toString())
-    client.publish("sensor/3030/proto", data.proto.toString())
+    client.publish("sensor/freq", data.sampleFrequency.toString())
+    client.publish("sensor/minv", data.minGas.toString())
+    client.publish("sensor/maxv", data.maxGas.toString())
+    client.publish("sensor/protocol", data.proto.toString())
 }
 
 module.exports = {
