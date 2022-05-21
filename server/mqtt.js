@@ -9,7 +9,6 @@ const connectUrl = `mqtt://${hostMqtt}:${portMqtt};` // url for connection
 // connection on Mosquitto broker
 var client = null;
 const topicMqtt = 'sensor/';
-//const subtopics = ["temperature", "humidity", "RSS", "AQI", "smoke", "CO", "CO2", "alcohol", "toluen", "NH4", "aceton", "id", "gps"];
 //temp_hum -> temperature and humidity
 //info -> RSS, id, gps
 //AQI -> AQI <opt: smokeV>

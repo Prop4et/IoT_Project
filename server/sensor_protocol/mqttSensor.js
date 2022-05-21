@@ -46,16 +46,7 @@ class MqttSimulator {
             client.publish('sensor/info', JSON.stringify(payloads.info))
             client.publish('sensor/temp_hum', JSON.stringify(payloads.temp_hum))
             client.publish('sensor/AQI', payloads.AQI + "")
-            client.publish('sensor/PPM', JSON.stringify(payloads.PPM))/*
-            client.publish('sensor/3030/CO', payloads.CO + "")
-            client.publish('sensor/3030/CO2', payloads.CO2 + "")
-            client.publish('sensor/3030/smoke', payloads.smoke + "")
-            client.publish('sensor/3030/alcohol', payloads.alcohol + "")
-            client.publish('sensor/3030/toluen', payloads.toluen + "")
-            client.publish('sensor/3030/NH4', payloads.NH4 + "")
-            client.publish('sensor/3030/aceton', payloads.aceton + "")
-            client.publish('sensor/3030/id', payloads.id + "")*/
-
+            client.publish('sensor/PPM', JSON.stringify(payloads.PPM))
             client.end()
         });
         
