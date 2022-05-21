@@ -22,7 +22,7 @@
 //***********************Software Related Macros*****************************************
 #define         Type135                 ("MQ-135") 
 #define         Type2                   ("MQ-2")
-#define         Voltage_Resolution      (3.3) // 3V3, 5 iso high
+#define         Voltage_Resolution      (3.3) // 3V3, 5 is high
 #define         ADC_Bit_Resolution      (12) 
 #define         RatioMQ135CleanAir      (3.6) 
 #define         RatioMQ2CleanAir        (9.83)
@@ -53,25 +53,21 @@ float RSS = 0;
 int status = WL_IDLE_STATUS;
 
 //*********************************MQTT Broker********************************************
-const char *mqtt_broker = "130.136.2.70"; //to change
-const char *topic = "sensor/3030/";
-const char *temperature_topic = "sensor/3030/temperature";
-const char *humidity_topic = "sensor/3030/humidity";
-const char *RSS_topic = "sensor/3030/RSS";
-const char *avg_topic = "sensor/3030/avg";
-const char *smoke_topic = "sensor/3030/smoke";
-const char *CO_topic = "sensor/3030/CO";
-const char *CO2_topic = "sensor/3030/CO2";
-const char *alcohol_topic = "sensor/3030/alcohol";
-const char *toluen_topic = "sensor/3030/toluen";
-const char *NH4_topic = "sensor/3030/NH4";
-const char *aceton_topic = "sensor/3030/aceton";
-const char *id_topic = "sensor/3030/id";
-const char *gps_topic = "sensor/3030/gps";
-
-const char *mqtt_username = "iot2022";
-const char *mqtt_password = "mqtt2022*";
+const char *mqtt_broker = "18.191.129.230";
 const int mqtt_port = 1883;
+const char *mqtt_username = "Prop4et";
+const char *mqtt_password = "ProgettoIoT";
+
+const char *topic = "sensor/";
+//temp_hum -> temperature and humidity
+//info -> RSS, id, gps
+//AQI -> AQI <opt: smokeV>
+//PPM -> smoke, CO, CO2, alcohol, toluen, NH4, aceton
+const char *info_topic = "sensor/info";
+const char *temp_hum_topic = "sensor/temp_hum";
+const char *AQI_topic = "sensor/AQI";
+const char *PPM_topic = "sensor/PPM";
+
 
 //**********************************HTTP**************************************************
 char http_hostname[] = "localhost:8080/IoT";
@@ -151,22 +147,14 @@ void sendData(char protocol, float RSS, float t, float h, float avg, float smoke
     snprintf(buff_NH4, sizeof(buff_NH4), "%lf", NH4);
     char buff_aceton[sizeof(double)];
     snprintf(buff_aceton, sizeof(buff_aceton), "%lf", aceton);
-
+    //gotta jsonize the things
     switch(protocol){
         case '1':
             Serial.println("MQTT");
-            client.publish(RSS_topic, buff_RSS, 0);
-            client.publish(temperature_topic, buff_t, 0);
-            client.publish(avg_topic, buff_avg, 0);
-            client.publish(humidity_topic, buff_h, 0);
-
-            client.publish(smoke_topic, buff_smoke, 0);
-            client.publish(CO_topic, buff_CO, 0);
-            client.publish(CO2_topic, buff_CO2, 0);
-            client.publish(alcohol_topic, buff_alchool, 0);
-            client.publish(toluen_topic, buff_toluen, 0);
-            client.publish(NH4_topic, buff_NH4, 0);
-            client.publish(aceton_topic, buff_aceton, 0);
+            client.publish(info_topic, buff_RSS, 0);
+            client.publish(temp_hum_topic, buff_t, 0);
+            client.publish(AQI_topic, buff_avg, 0);
+            client.publish(PPM_topic, buff_h, 0);
 
         break;
         case '2':
