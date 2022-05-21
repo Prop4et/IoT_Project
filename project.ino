@@ -3,6 +3,7 @@
 #include <MQUnifiedsensor.h>
 #include <PubSubClient.h>
 #include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 /*#define INFLUXDB_URL "https://eu-central-1-1.aws.cloud2.influxdata.com"
 #define INFLUXDB_TOKEN "hQJ9ONu00iM6k4Nhy-ZrJidVLBg0i_iW_asBtnzSKIZivgHhnj6t3jUZ8KdtAp-4JGY4i6lg8Fu62leWf0T1qw=="
@@ -29,16 +30,25 @@
 #define         WINDOW                  (5)
 
 //*********************************SETTINGS**********************************************
-int ID = 3030;
+const char *id = "3030";
+const float lat = 44.501;
+const float lon = 11.350;
 int SAMPLE_FREQ = 10000;
-int MIN_GAS_VALUE = 4095;
-int MAX_GAS_VALUE = 500;
+float MIN_GAS_VALUE = 4095;
+float MAX_GAS_VALUE = 500;
 int AQI = 2; //0 iv avg > MAX_GAS_VALUE, 1 if MIN_GAS_VALUE < avg < MAX_GAS_VALUE, 2 otherwise
 int n_sample = 0;
 int shifting_index = 0;
 float array_avg[WINDOW] = {-1, -1, -1, -1, -1};//-1 is not a valid argument for the voltage 
 char protocol = '1'; //1 is MQTT, 2 is COAP,3 is HTTP (?)
-
+const int doc_info_capacity = JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(2);
+const int doc_temp_hum_capacity = JSON_OBJECT_SIZE(2);
+const int doc_MQ2_capacity = JSON_OBJECT_SIZE(2);
+const int doc_PPM_capacity = JSON_OBJECT_SIZE(6);
+StaticJsonDocument<doc_info_capacity> info_doc;
+StaticJsonDocument<doc_temp_hum_capacity> temp_hum_doc;
+StaticJsonDocument<doc_MQ2_capacity> MQ2_doc;
+StaticJsonDocument<doc_PPM_capacity> PPM_doc;
 //*********************************SENSORS***********************************************
 //dht sensor define 
 DHT dht(DHTPIN, DHTTYPE);
@@ -56,8 +66,7 @@ int status = WL_IDLE_STATUS;
 const char *mqtt_broker = "18.191.129.230";
 const int mqtt_port = 1883;
 const char *mqtt_username = "Prop4et";
-const char *mqtt_password = "ProgettoIoT";
-
+const char *mqtt_password = "Progetto_IoT";
 const char *topic = "sensor/";
 //temp_hum -> temperature and humidity
 //info -> RSS, id, gps
@@ -65,10 +74,13 @@ const char *topic = "sensor/";
 //PPM -> smoke, CO, CO2, alcohol, toluen, NH4, aceton
 const char *info_topic = "sensor/info";
 const char *temp_hum_topic = "sensor/temp_hum";
-const char *AQI_topic = "sensor/AQI";
+const char *MQ2_topic = "sensor/Mq2";
 const char *PPM_topic = "sensor/PPM";
-
-
+//topic to receive parameters
+const char *min_v_topic = "sensor/minv";
+const char *max_v_topic = "sensor/maxv";
+const char *read_freq_topic = "sensor/freq";
+const char *protocol_topic = "sensor/protocol";
 //**********************************HTTP**************************************************
 char http_hostname[] = "localhost:8080/IoT";
 
@@ -81,29 +93,37 @@ PubSubClient client(mqttClient);
 //********************************UTILITY FUNCTIONS***************************************
 //callback when receiving mqtt response
 void callback_response(char *topic, byte *payload, unsigned int length) {
+    /*StaticJsonDocument<256> doc;
+    deserializeJson(doc, (const byte*)payload, length);*/
     Serial.print("Message arrived in topic: ");
     Serial.println(topic);
     //check the response and parse to get the right protocol to talk with 
     Serial.print("Message:");
     char p[length+1];
 	memcpy(p, payload, length);
-    Serial.print(p);
-    Serial.println("\n-----------------------");
+    Serial.println(p);
+    Serial.println("-----------------------");
 }
 //function for connecting to the mqtt client
-void mqtt_connection(){
+void mqtt_connect(){
     client.setServer(mqtt_broker, mqtt_port);
     client.setCallback(callback_response); // setup the callback for the client connection (MQTT) 
     while (!client.connected()) {
         String client_id = "esp32-client-";
         client_id += String(WiFi.macAddress());
-        Serial.printf("The client %s connects to the public mqtt broker\n", client_id.c_str());
+        Serial.printf("Trying to connect to the mqtt broker");
         if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
-            Serial.println("Public emqx mqtt broker connected");
+            Serial.println("Connected");
+            //subscribe here
+            client.subscribe(min_v_topic);
+            client.subscribe(max_v_topic);
+            client.subscribe(read_freq_topic);
+            client.subscribe(protocol_topic);
+            Serial.println("Subscribed for updates");
         } else {
             // connection error handler
-            Serial.print("failed with state ");
-            Serial.print(client.state());
+            Serial.print("Connection failed with state ");
+            Serial.println(client.state());
             delay(2000);
         }
     }
@@ -118,44 +138,29 @@ float average(float *arr, int len){
 
 
 //send data
-void sendData(char protocol, float RSS, float t, float h, float avg, float smokeV, float smoke, float CO, float CO2, float alcohol, float toluen, float NH4, float aceton){
-    //conversion in strings because that's how it works
-    char buff_RSS[sizeof(double)];
-    snprintf(buff_RSS, sizeof(buff_RSS), "%lf", RSS);
-    char buff_t[sizeof(double)];
-    snprintf(buff_t, sizeof(buff_t), "%lf", t);
-    char buff_h[sizeof(double)];
-    snprintf(buff_h, sizeof(buff_h), "%lf", h);
-    char buff_avg[sizeof(double)];
-    snprintf(buff_avg,  sizeof(buff_avg), "%lf", avg);
-    if(smokeV < MIN_GAS_VALUE) AQI = 0;
-    else if((smokeV > MIN_GAS_VALUE) && (smokeV < MAX_GAS_VALUE)) AQI = 1;
-    else AQI = 2;
-    char buff_AQI[sizeof(double)];
-    snprintf(buff_AQI, sizeof(buff_AQI), "%lf", AQI);
-    char buff_smoke[sizeof(double)];
-    snprintf(buff_smoke, sizeof(buff_smoke), "%lf", smoke);
-    char buff_CO[sizeof(double)];
-    snprintf(buff_CO, sizeof(buff_CO), "%lf", CO);
-    char buff_CO2[sizeof(double)];
-    snprintf(buff_CO2, sizeof(buff_CO2), "%lf", CO2);
-    char buff_alchool[sizeof(double)];
-    snprintf(buff_alchool, sizeof(buff_alchool), "%lf", alcohol);
-    char buff_toluen[sizeof(double)];
-    snprintf(buff_toluen, sizeof(buff_toluen), "%lf", toluen);
-    char buff_NH4[sizeof(double)];
-    snprintf(buff_NH4, sizeof(buff_NH4), "%lf", NH4);
-    char buff_aceton[sizeof(double)];
-    snprintf(buff_aceton, sizeof(buff_aceton), "%lf", aceton);
-    //gotta jsonize the things
+void sendData(char protocol, float RSS, float t, float h, float smoke, float CO, float CO2, float alcohol, float toluen, float NH4, float aceton){
+    //print
+    Serial.print("info: "); Serial.print(id); Serial.print(" "); Serial.print(RSS); Serial.print(" "); Serial.print(lon); Serial.print(" "); Serial.println(lat);
+    Serial.print("temperature and humidity: "); Serial.print(t); Serial.print(" "); Serial.println(h);     //gotta jsonize the things
+    Serial.print("MQ2: "); Serial.print(AQI); Serial.print(" "); Serial.println(smoke);
+    Serial.print("PPM: "); Serial.print(CO); Serial.print(" "); Serial.print(CO2); Serial.print(" "); Serial.print(" "); Serial.print(alcohol); Serial.print(" "); Serial.print(toluen); Serial.print(" "); Serial.print(NH4); Serial.print(" "); Serial.println(aceton);
+    info_doc["id"] = id;    info_doc["RSS"] = RSS;    info_doc["gps"]["lat"] = lat;    info_doc["gps"]["lon"] = lon; char buffer_id[sizeof(info_doc)]; //json for the info topic
+    temp_hum_doc["temperature"] = t;    temp_hum_doc["humidity"] = h; char buffer_temp_hum[sizeof(temp_hum_doc)]; //json for the temperature humidity topic 
+    MQ2_doc["smoke"] = smoke;   MQ2_doc["AQI"] = AQI;   char buffer_MQ2[sizeof(MQ2_doc)]; //json for the smoke
+    PPM_doc["CO"] = CO;    PPM_doc["CO2"] = CO2;    PPM_doc["alcohol"] = alcohol;   PPM_doc["toluen"] = toluen;    PPM_doc["NH4"] = NH4;    PPM_doc["aceton"] = aceton; char buffer_PPM[sizeof(PPM_doc)];//PPM json    
+    //send it 
+    serializeJson(info_doc, buffer_id);
+    serializeJson(temp_hum_doc, buffer_temp_hum);
+    serializeJson(MQ2_doc, buffer_MQ2);
+    serializeJson(PPM_doc, buffer_PPM);
+
     switch(protocol){
         case '1':
             Serial.println("MQTT");
-            client.publish(info_topic, buff_RSS, 0);
-            client.publish(temp_hum_topic, buff_t, 0);
-            client.publish(AQI_topic, buff_avg, 0);
-            client.publish(PPM_topic, buff_h, 0);
-
+            client.publish(info_topic, buffer_id, 0);
+            client.publish(temp_hum_topic, buffer_temp_hum, 0);
+            client.publish(MQ2_topic, buffer_MQ2, 0);
+            client.publish(PPM_topic, buffer_PPM, 0);
         break;
         case '2':
         break;
@@ -202,21 +207,18 @@ void setup(){
     if(calcR0MQ135 == 0){Serial.println("Warning: Conection issue found, R0_MQ135 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
 
     //WIFI CONNECTION
+
+    Serial.print("Attempting to connect to: ");
+    Serial.println(ssid);
 	while (status != WL_CONNECTED){
-		Serial.print("Attempting to connect to: ");
-		Serial.println(ssid);
 		status = WiFi.begin(ssid, pwd);
+        Serial.print(".");
 		delay(5000);
 	}
-   
-	Serial.println("Connected to");
+	Serial.println("\nConnected to ip: ");
 	Serial.println(WiFi.localIP());
-	delay(100);
-    char in = Serial.read();
-    if(in == '1'|| in == '2' || in == '3'){
-        protocol=in;
-    }
     delay(250);
+    mqtt_connect();
 }
 
 void loop(){
@@ -269,8 +271,10 @@ void loop(){
 
     //send data
     float avg = average(array_avg, n_sample);       
-
-    sendData(protocol, RSS, t, h, avg, smokeV, smoke, CO, CO2, alcohol, toluen, NH4, aceton);
+    if(avg < MIN_GAS_VALUE) AQI = 0;
+    else if ((avg > MIN_GAS_VALUE) && (avg < MIN_GAS_VALUE)) AQI = 1;
+    else AQI = 2;
+    sendData(protocol, RSS, t, h, smoke, CO, CO2, alcohol, toluen, NH4, aceton);
 
     delay(SAMPLE_FREQ);
 }
