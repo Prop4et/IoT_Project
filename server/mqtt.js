@@ -60,7 +60,7 @@ function initialize() {
             break;
             case 'temp_hum': console.log("MQTT: Temperature and Humidity>", res['temperature'] + "° " + res['humidity']+"%");
             break;
-            case 'MQ2': console.log("MQTT: MQ2 params>", +"AQI: " + res["AQI"] + " smoke: " + res["smoke"]);
+            case 'MQ2': console.log("MQTT: MQ2 params>", "smoke: " + res["smoke"] + " AQI: " + res["AQI"] + " avg " + res["avg"]);
             break;
             case 'PPM': {
                 console.log("MQTT: PPM> \n\t" +
