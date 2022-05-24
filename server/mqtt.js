@@ -81,6 +81,8 @@ function initialize() {
     });
 }
 
+//Mybe i should send it with coap, makes more sense that the arduino asks for the update
+/*
 function toSensor(data) {
     if (client == null) {
         console.log('Error, no sensors connected.')
@@ -90,9 +92,9 @@ function toSensor(data) {
     client.publish("sensor/minv", data.minGas.toString())
     client.publish("sensor/maxv", data.maxGas.toString())
     client.publish("sensor/protocol", data.proto.toString())
-}
+}*/
 
 module.exports = {
-    initialize,
-    toSensor,
+    initialize
+    //toSensor,
 }
