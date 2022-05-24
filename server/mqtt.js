@@ -56,6 +56,7 @@ function initialize() {
 
         sarr = topic.split('/');
         switch(sarr[sarr.length - 1]){
+            //this should go to influx later on
             case 'info': console.log("MQTT: Info> ID: ", res['id'] + " Signal: " +res['RSS'] + "db Coordinates: "+ res['gps'].lat+"°, "+res['gps'].lon+"°");
             break;
             case 'temp_hum': console.log("MQTT: Temperature and Humidity>", res['temperature'] + "° " + res['humidity']+"%");
