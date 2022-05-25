@@ -3,9 +3,11 @@
 #include <DHT.h>
 #include <MQUnifiedsensor.h>
 #include <PubSubClient.h>
-#include <coap-simple.h>
+//#include <coap-simple.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+
+#include "coap-simple.h"
 
 /*#define INFLUXDB_URL "https://eu-central-1-1.aws.cloud2.influxdata.com"
 #define INFLUXDB_TOKEN "hQJ9ONu00iM6k4Nhy-ZrJidVLBg0i_iW_asBtnzSKIZivgHhnj6t3jUZ8KdtAp-4JGY4i6lg8Fu62leWf0T1qw=="
@@ -42,7 +44,7 @@ int AQI = 2; //0 if avg > MAX_GAS_VALUE, 1 if MIN_GAS_VALUE < avg < MAX_GAS_VALU
 int n_sample = 0;
 int shifting_index = 0;
 float array_avg[WINDOW] = {-1, -1, -1, -1, -1};//-1 is not a valid argument for the voltage 
-char protocol = '2'; //1 is MQTT, 2 is COAP
+int protocol = 2; //1 is MQTT, 2 is COAP
 const int doc_info_capacity = JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(2);
 const int doc_temp_hum_capacity = JSON_OBJECT_SIZE(2);
 const int doc_MQ2_capacity = JSON_OBJECT_SIZE(3);
@@ -85,11 +87,6 @@ const char *info_topic = "sensor/info";
 const char *temp_hum_topic = "sensor/temp_hum";
 const char *MQ2_topic = "sensor/MQ2";
 const char *PPM_topic = "sensor/PPM";
-//topic to receive parameters
-const char *min_v_topic = "sensor/minv";
-const char *max_v_topic = "sensor/maxv";
-const char *read_freq_topic = "sensor/freq";
-const char *protocol_topic = "sensor/protocol";
 
 //clients
 WiFiClient mqttClient;
@@ -99,15 +96,23 @@ Coap coap(coapServer);
 //******************************************MQTT functions*********************************
 //callback when receiving mqtt response
 void callback_response_mqtt(char *topic, byte *payload, unsigned int length) {
-    /*StaticJsonDocument<256> doc;
-    deserializeJson(doc, (const byte*)payload, length);*/
+    StaticJsonDocument<256> doc;
+    
     Serial.print("Message arrived in topic: ");
     Serial.println(topic);
     //check the response and parse to get the right protocol to talk with 
     Serial.print("Message:");
-    char p[length+1];
+    char p[length];
 	memcpy(p, payload, length);
+    p[length] = '\0';
     Serial.println(p);
+    DeserializationError error = deserializeJson(doc, (const char*)p, length);
+    if(error){
+        Serial.print("Deserialization failed: "); 
+        Serial.println(error.f_str());
+    } 
+    const char* maxGas = doc["maxGas"];
+    Serial.println(maxGas);
     Serial.println("-----------------------");
 }
 //function for connecting to the mqtt client
@@ -118,15 +123,9 @@ void mqtt_connect(){
         String client_id = "esp32-client-";
         client_id += String(WiFi.macAddress());
         Serial.printf("Trying to connect to the mqtt broker");
-        if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
+        if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) 
             Serial.println("Connected");
-            //subscribe here
-            client.subscribe(min_v_topic);
-            client.subscribe(max_v_topic);
-            client.subscribe(read_freq_topic);
-            client.subscribe(protocol_topic);
-            Serial.println("Subscribed for updates");
-        } else {
+        else{
             // connection error handler
             Serial.print("Connection failed with state ");
             Serial.print(client.state());
@@ -137,23 +136,50 @@ void mqtt_connect(){
 
 //********************************COAP functions******************************************
 void callback_coap_info(CoapPacket &packet, IPAddress ip, int port){
-    Serial.println("Request arrived on Coap");
+    Serial.println("Coap request in info");
+    char p[packet.payloadlen + 1];
+    memcpy(p, packet.payload, packet.payloadlen);
+    p[packet.payloadlen] = NULL;
+
+    Serial.println(p);
     coap.sendResponse(ip, port, packet.messageid, buffer_id);
 }
 
 void callback_coap_temp_hum(CoapPacket &packet, IPAddress ip, int port){
-    Serial.println("Request arrived on Coap");
+    Serial.println("Coap request in temp_hum");
     coap.sendResponse(ip, port, packet.messageid, buffer_temp_hum);
 }
 
 void callback_coap_MQ2(CoapPacket &packet, IPAddress ip, int port){
-    Serial.println("Request arrived on Coap");
+    Serial.println("Coap request in MQ2");
     coap.sendResponse(ip, port, packet.messageid, buffer_MQ2);
 }
 
 void callback_coap_PPM(CoapPacket &packet, IPAddress ip, int port){
-    Serial.println("Request arrived on Coap");
+    Serial.println("Coap request in PPM");
     coap.sendResponse(ip, port, packet.messageid, buffer_PPM);
+}
+
+void callback_params(CoapPacket &packet, IPAddress ip, int port) {
+    Serial.print("[Coap Response got]: ");
+    char p[packet.payloadlen + 1];
+    memcpy(p, packet.payload, packet.payloadlen);
+    p[packet.payloadlen] = '\0';
+    Serial.println(p);
+
+    StaticJsonDocument<256> doc;
+    DeserializationError error = deserializeJson(doc, (const char*)packet.payload, packet.payloadlen);
+    if(error){
+        Serial.print("Deserialization failed: "); 
+        Serial.println(error.f_str());
+    } 
+    MIN_GAS_VALUE = doc["MIN_GAS_VALUE"];
+    MAX_GAS_VALUE = doc["MAX_GAS_VALUE"];
+    protocol = doc["protocol"];
+    Serial.print("Selected protocol: "); Serial.println(protocol);
+    SAMPLE_FREQ = doc["SAMPLE_FREQ"];
+    Serial.println("-----------------------");
+
 }
 
 
@@ -233,27 +259,25 @@ void setup(){
         Serial.print(".");
 		delay(5000);
 	}
-	Serial.println("\nConnected with ip: ");
+	Serial.print("\nConnected with ip: ");
 	Serial.println(WiFi.localIP());
     delay(250);
     mqtt_connect();
-    coap.server(callback_coap_info, "info");
-    coap.server(callback_coap_temp_hum, "temp_hum");
-    coap.server(callback_coap_MQ2, "MQ2");
-    coap.server(callback_coap_PPM, "PPM");
-
+    coap.server(callback_coap_info, info_topic);
+    coap.server(callback_coap_temp_hum, temp_hum_topic);
+    coap.server(callback_coap_MQ2, MQ2_topic);
+    coap.server(callback_coap_PPM, PPM_topic);
+    coap.response(callback_params);
     coap.start(5683);
 }
 
-long lastMsg = 0;
-void loop(){
-    //to test, if this works i have to send the new protocol both with coap and mqtt
-    if(protocol == '1')
-        client.loop();
-    if(protocol == '2')
-        coap.loop();
-    //WiFi stats 
 
+void loop(){
+    
+    //get parameters through coap 
+    int msgid = coap.get(IPAddress(192, 168, 1, 133), 5683, "params");
+   
+    //WiFi stats 
     RSS = WiFi.RSSI();
     Serial.println("--------- Data -----------");
     Serial.print("WiFi RSS Strength: ");
@@ -306,16 +330,25 @@ void loop(){
 
     //serialize as json
     serializeData(RSS, t, h, smoke, avg, CO, CO2, alcohol, toluen, NH4, aceton);
-    if(protocol == '1'){
+    if(protocol == 1){
         Serial.println("-------MQTT SEND-------");
         client.publish(info_topic, buffer_id, 0);
         client.publish(temp_hum_topic, buffer_temp_hum, 0);
         client.publish(MQ2_topic, buffer_MQ2, 0);
         client.publish(PPM_topic, buffer_PPM, 0);
-    }else if(protocol == '2');
+        coap.loop_client();
+    }else if(protocol == 2){
+        Serial.println("-------COAP PUT--------");
+        coap.loop();
+        /*coap.put(IPAddress(192, 168, 1, 229), 5683, info_topic, buffer_id);
+        coap.put(IPAddress(192, 168, 1, 229), 5683, temp_hum_topic, buffer_temp_hum);
+        coap.put(IPAddress(192, 168, 1, 229), 5683, MQ2_topic, buffer_MQ2);
+        coap.put(IPAddress(192, 168, 1, 229), 5683, PPM_topic, buffer_PPM);*/
+    }
     else{
+        coap.loop_client();
         Serial.println("No protocol selected, defaulting to MQTT");
-        protocol = '1';
+        protocol = 1;
     }
     delay(SAMPLE_FREQ);
 }
