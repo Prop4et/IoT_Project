@@ -17,6 +17,7 @@ const portHttp = 8080
 const app = express()
 
 // bodyParser for POST
+
 app.use(bodyParser.json())
 app.use(
     bodyParser.urlencoded({
