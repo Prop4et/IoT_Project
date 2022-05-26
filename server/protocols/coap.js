@@ -2,10 +2,9 @@ const coap = require('coap')
 const parser = require('./parser')
 
 function requests(){
-const topicMqtt = parser.topicMqtt;
-const subtopics = parser.subtopics;
-const server = coap.createServer()
-
+    const topicMqtt = parser.topicMqtt;
+    const subtopics = parser.subtopics;
+    const server = coap.createServer()
     setInterval( () => {
         var req0 = coap.request('coap://192.168.1.229/'+topicMqtt+subtopics[0])
         req0.on('response', (res) => {
