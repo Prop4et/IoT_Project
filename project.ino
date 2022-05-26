@@ -6,6 +6,7 @@
 #include <coap-simple.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <HTTPClient.h>
 
 //*********************************DHT HW PARAMS ***************************************
 #define DHTPIN 4
@@ -79,14 +80,10 @@ const char *info_topic = "sensor/info";
 const char *temp_hum_topic = "sensor/temp_hum";
 const char *MQ2_topic = "sensor/MQ2";
 const char *PPM_topic = "sensor/PPM";
-
-//clients
-WiFiClient mqttClient;
-WiFiUDP coapServer;
-PubSubClient client(mqttClient);
-Coap coap(coapServer);
-
-//******************************************MQTT functions*********************************
+//**********************************MQTT vars**********************************************
+WiFiClient mqttWiFi;
+PubSubClient mqttClient(mqttWiFi); //mqttClient for the mqtt publish subscribe
+//**********************************MQTT functions*****************************************
 //callback when receiving mqtt response
 void callback_response_mqtt(char *topic, byte *payload, unsigned int length) {
     StaticJsonDocument<256> doc;
@@ -108,25 +105,27 @@ void callback_response_mqtt(char *topic, byte *payload, unsigned int length) {
     Serial.println(maxGas);
     Serial.println("-----------------------");
 }
-//function for connecting to the mqtt client
+//function for connecting to the mqtt mqttClient
 void mqtt_connect(){
-    client.setServer(mqtt_broker, mqtt_port);
-    //client.setCallback(callback_response_mqtt); // setup the callback for the client connection (MQTT) 
-    while (!client.connected()) {
-        String client_id = "esp32-client-";
+    mqttClient.setServer(mqtt_broker, mqtt_port);
+    //mqttClient.setCallback(callback_response_mqtt); // setup the callback for the mqttClient connection (MQTT) 
+    while (!mqttClient.connected()) {
+        String client_id = "esp32-mqttClient-";
         client_id += String(WiFi.macAddress());
         Serial.printf("Trying to connect to the mqtt broker ... ");
-        if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) 
+        if (mqttClient.connect(client_id.c_str(), mqtt_username, mqtt_password)) 
             Serial.println("Connected");
         else{
             // connection error handler
             Serial.print("Connection failed with state ");
-            Serial.print(client.state());
+            Serial.print(mqttClient.state());
             delay(2000);
         }
     }
 }
-
+//********************************COAP vars***********************************************
+WiFiUDP coapServer; 
+Coap coap(coapServer); //server coap
 //********************************COAP functions******************************************
 void callback_coap_info(CoapPacket &packet, IPAddress ip, int port){
     Serial.println("Coap request in info");
@@ -147,6 +146,11 @@ void callback_coap_PPM(CoapPacket &packet, IPAddress ip, int port){
     Serial.println("Coap request in PPM");
     coap.sendResponse(ip, port, packet.messageid, buffer_PPM, strlen(buffer_PPM), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
+//********************************HTTP vars***********************************************
+const char* connectSensor = "192.168.1.94/sensor"; //post
+const char* getSensor = "192.168.1.94/sensor?id=3030"; //Get
+WiFiClient httpWiFi;
+HTTPClient httpClient;
 
 //********************************UTILITY functions***************************************
 float average(float *arr, int len){
@@ -300,18 +304,17 @@ void loop(){
         lastMsg = mill;
     }
     if(protocol == 1){
-        client.publish(info_topic, buffer_info, 0);
-        client.publish(temp_hum_topic, buffer_temp_hum, 0);
-        client.publish(MQ2_topic, buffer_MQ2, 0);
-        client.publish(PPM_topic, buffer_PPM, 0);
+        mqttClient.publish(info_topic, buffer_info, 0);
+        mqttClient.publish(temp_hum_topic, buffer_temp_hum, 0);
+        mqttClient.publish(MQ2_topic, buffer_MQ2, 0);
+        mqttClient.publish(PPM_topic, buffer_PPM, 0);
         delay(SAMPLE_FREQ+1);
     }else if(protocol == 2){
         coap.loop();
     }
     else{
         //coap.loop_client();
-        Serial.println("No protocol selected, defaulting to MQTT");
-        protocol = 2;
+        Serial.println("No protocol selected, likely to have a duplicated ID");
     }
         
 }
