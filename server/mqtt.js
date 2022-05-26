@@ -10,13 +10,8 @@ const connectUrl = `mqtt://${hostMqtt}:${portMqtt};` // url for connection
 
 // connection on Mosquitto broker
 var client = null;
-const topicMqtt = 'sensor/';
-
-//info -> RSS, id, gps
-//temp_hum -> temperature and humidity
-//MQ2 -> AQI smoke
-//PPM -> smoke, CO, CO2, alcohol, toluen, NH4, aceton
-const subtopics = ["temp_hum", "info", 'MQ2', 'PPM']
+const topicMqtt = parser.topicMqtt;
+const subtopics = parser.subtopics;
 
 function initialize() {
 
@@ -57,10 +52,11 @@ function initialize() {
             return;
         }
 
-        res = JSON.parse(payload.toString());
+        //res = JSON.parse(payload.toString());
 
-        sarr = topic.split('/');
-        switch(sarr[sarr.length - 1]){
+        //sarr = topic.split('/');
+        parser.parse(payload, topic.split('/'), 'MQTT');
+        /*switch(sarr[sarr.length - 1]){
             case 'info': parser.parseInfo(res);
             break;
             case 'temp_hum': parser.parseTempHum(res);
@@ -72,7 +68,7 @@ function initialize() {
             default:
                 console.log('MQTT: topic not supported:', sarr[sarr.length - 1]);
             break;
-        }
+        }*/
     
     });
 }
