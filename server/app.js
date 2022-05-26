@@ -38,14 +38,13 @@ app.get("/", (req, res)=>{
   res.sendFile(path.join(__dirname, '/index.html'));
 })
 
-// Retrieve connected sensors ids
-app.get('/update-freq', http.getFreq);
-app.get('/update-gas', http.getGas);
-app.get('/update-proto', http.getProto);
-//app.get('/getIDs', protocols.getIDs)
-app.post('/update-freq', http.updateFreq);
-app.post('/update-gas', http.updateGas);
-app.post('/update-proto', http.updateProto);
+//get parameters
+app.get('/sensor', http.getSensor);
+app.post('/sensor', http.connectSensor);
+
+//set parameters from dashboard
+app.post('/update-sensor', http.postSensor);
+
 // Change the 404 message modifing the middleware
 app.use(function(req, res, next) {
   console.log(req)
@@ -56,6 +55,6 @@ app.use(function(req, res, next) {
 
 
 // start the server in the port 3000 !
-app.listen(8080, function () {
+app.listen(8080, '127.0.0.1', function () {
   console.log('Example app listening on port 8080.');
 });

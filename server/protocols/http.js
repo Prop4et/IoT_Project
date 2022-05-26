@@ -1,87 +1,81 @@
 //resources value
-var sampleFrequency = 10000;
-var minGas = 0;
-var maxGas = 5000;
-var proto = 1;
+params = {} //{ id: {smpleFrequency: xx, minGas:xx, maxGas:xx, proto:}, .....}
 
-function updateFreq(req, res){
-    console.log('HTTP: Update sample frequency values...')
-    var app = req.body.sampleFrequency;
-
-    if(app < 0) {
-        console.log('HTTP Error: Invalid values received.');
-        console.log('-----------------------------');
+//nothing is sanitized and types aren't checked
+function postSensor(req, res){
+    console.log('HTTP: Update ...')
+    const id = req.body.id;
+    const data = {
+        sampleFrequency: req.body.sampleFrequency,
+        gasMin: req.body.minGas,
+        gasMax: req.body.maxGas,
+        proto: req.body.proto
+    }
+    if(!(id in params)) {
+        console.log('HTTP Error: ID ' + id + ' not found for the update');
+        res.redirect('/');
         return;
     }
+    if(data.sampleFrequency < 0 || data.sampleFrequency == undefined || data.sampleFrequency == null){
+        console.log('HTTP Error: Invalid values received for sample frequency');
+        console.log('-----------------------------');
+        data.sampleFrequency = params.id.sampleFrequency;
+    }else console.log('HTTP received a new value for the sample frequency');
 
-    if (app != undefined && app != null) {
-        console.log('HTTP: Received SAMPLE_FREQUENCY: ' + app)
-    } else {
-        console.log('HTTP: Invalid frequency value, defaulting to 10000');
-        app = 10000
+    if(data.gasMin > data.gasMax){
+        console.log('HTTP Error: min value for gas is higher than maximum, back to default');
+        data.gasMin = params.id.gasMin;
+        data.gasMax = params.id.gasMax;
     }
-    //here i save the resource that i should be able to get later 
-    sampleFrequency = app;
+    if(data.gasMin !== undefined && data.gasMin !== null) console.log('HTTP: New value for MIN_GAS_VALUE: ' + data.gasMin);
+    else{
+        console.log('HTTP Error: invalid minGas value')
+        data.gasMin = params.id.gasMin;
+    }
+    if(data.gasMax !== undefined && data.gasMax !== null) console.log('HTTP: New value for MAX_GAS_VALUE: ' + data.gasMax);
+    else{
+        console.log('HTTP Error: invalid minGas value')
+        data.gasMax = params.id.gasMax;
+    }
+
+    if (data.proto == undefined || data.proto == null || (data.proto !== 1 && data.proto !== 2)) {
+        console.log('HTTP Error: Invalid data received, no valid protocol, defaulting to MQTT');
+        data.proto = params.id.proto;
+    }
+
+    params.id = data;
+    res.redirect('/');
+
 }
 
-function updateGas(req, res){
-    console.log('HTTP: Update gas values...')
-    var appMin = req.body.minGas;
-    var appMax = req.body.maxGas;
-
-    if (appMin > appMax){
-        console.log('HTTP Error: Invalid values received.');
-        console.log('-----------------------------');
+//on a new sensor i can notify if that id already exists
+function connectSensor(req, res){
+    console.log('HTTP connecting a new sensor')
+    const id = req.body.id;
+    if(id in params){
+        console.log('a new sensor has connected with the same id of another one: ' + id);
         return;
     }
-
-    if (appMin !== undefined && appMin !== null) console.log('HTTP: Received MIN_GAS_VALUE: ' + appMin);
-        else {
-            console.log('HTTP: Invalid min value, defaulting to min 0');
-            appMin = 0;
-        }
-        if (appMax !== undefined && appMax !== null) console.log('HTTP: Received MAX_GAS_VALUE: ' + appMax);
-        else {
-            console.log('HTTP: Invalid max value, defaulting to max 5000');
-            appMax = 5000;
-        }
-
-    minGas = appMin;
-    maxGas = appMax;
-        
-}
-
-function updateProto (req, res){
-    console.log('HTTP: Update protocol...');
-    appProto = req.body.protocol;
-
-    if (appProto == undefined || appProto == null || (appProto !== 1 && appProto !== 2)) {
-        console.log('HTTP Error: Invalid data received, no valid protocol');
-        console.log('-----------------------------');
-        return;
+    params.id = {
+        sampleFrequency: 10000,
+        gasMin: 0,
+        gasMax: 5000,
+        proto: 1
     }
-
-    proto = appProto;
-
+    res.redirect('/');
+    //there's already a sensor with that id, can't do that, deve essere fatto a mano imo
 }
 
-function getFreq(req, res){
-    res.send(JSON.stringify({sampleFreq: sampleFrequency}));
-}
-
-function getGas(req, res){
-    res.send(JSON.stringify({minGas: minGas, maxGas: maxGas}));
-}
-
-function getProto(req, res){
-    res.send(JSON.stringify({proto: proto}));
+function getSensor(req, res){
+    //there should be a query param with the id
+    var id = req.query.id;
+    if(id in params)
+        res.send(JSON.stringify(params.id))
+    res.redirect('/');
 }
 
 module.exports = {
-    updateFreq,
-    updateGas, 
-    updateProto,
-    getFreq,
-    getGas,
-    getProto
+    postSensor,
+    connectSensor, 
+    getSensor,
 }

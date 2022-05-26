@@ -4,7 +4,14 @@
     
 </head>
 <body>
-    <form action="update-freq" method="post">
+    <form action="update-sensor" method="post">
+        <div class="">
+            <label class="" for="">Sensor id:</label>
+            <div class="">
+                <input type="text" class="" id="" name="id"
+                    placeholder="xxxx" required>
+            </div>
+        </div>
         <div class="">
             <label class="" for="">Sample Frequency:</label>
             <div class="">
@@ -12,13 +19,6 @@
                     placeholder="Sample Frequency" required>
             </div>
         </div>
-        <div class="">
-            <button type="submit" class="">Send Frequency</button>
-        </div>
-    </div>
-    </form>
-
-    <form action="update-gas" method="post">
         <div class="">
             <label class="" for="">gas values:</label>
             <div class="">
@@ -33,13 +33,6 @@
             </div>
         </div>
         <div class="">
-            <button type="submit" class="">Send Gas</button>
-        </div>
-    </div>
-    </form>
-
-    <form action="update-proto" method="post">
-        <div class="">
             <label class="" for="">protocol:</label>
             <div class="">
                 <input type="text" class="" id="" name="proto"
@@ -47,9 +40,8 @@
             </div>
         </div>
         <div class="">
-            <button type="submit" class="">Send Protocol</button>
+            <button type="submit" class="">Send</button>
         </div>
-    </div>
     </form>
 
 </body>
