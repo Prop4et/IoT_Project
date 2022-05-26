@@ -2,3 +2,7 @@
 *.json
 /server/node_modules
 /server/*.json
+
+#original library for coap, edited to suit my needs
+CoAP-simple-library 
+Thing.CoAP

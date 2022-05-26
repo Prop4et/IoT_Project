@@ -1,5 +1,7 @@
 const mqtt = require('mqtt')
+
 const config = require('./config')
+const parser = require('./parser')
 // ----- MQTT setup -----
 const hostMqtt = config.host; // Broker Mosquitto, should i make mine?
 const portMqtt = config.port; // listen port for MQTT
@@ -8,14 +10,12 @@ const connectUrl = `mqtt://${hostMqtt}:${portMqtt};` // url for connection
 
 // connection on Mosquitto broker
 var client = null;
-const topicMqtt = 'sensor/';
-//info -> RSS, id, gps
-//temp_hum -> temperature and humidity
-//MQ2 -> AQI smoke
-//PPM -> smoke, CO, CO2, alcohol, toluen, NH4, aceton
-const subtopics = ["temp_hum", "info", 'MQ2', 'PPM']
+const topicMqtt = parser.topicMqtt;
+const subtopics = parser.subtopics;
 
 function initialize() {
+
+    //initializing MQTT
     console.log(connectUrl);
     client = mqtt.connect(connectUrl, {
         clientId,
@@ -52,48 +52,18 @@ function initialize() {
             return;
         }
 
-        res = JSON.parse(payload.toString());
+        //res = JSON.parse(payload.toString());
 
-        sarr = topic.split('/');
-        switch(sarr[sarr.length - 1]){
-            //this should go to influx later on
-            case 'info': console.log("MQTT: Info> ID: ", res['id'] + " Signal: " +res['RSS'] + "db Coordinates: "+ res['gps'].lat+"°, "+res['gps'].lon+"°");
-            break;
-            case 'temp_hum': console.log("MQTT: Temperature and Humidity>", res['temperature'] + "° " + res['humidity']+"%");
-            break;
-            case 'MQ2': console.log("MQTT: MQ2 params>", +"AQI: " + res["AQI"] + " smoke: " + res["smoke"]);
-            break;
-            case 'PPM': {
-                console.log("MQTT: PPM> \n\t" +
-                                'CO: ' + res['CO'] +"\n\t" +
-                                'CO2: ' + res['CO2'] +"\n\t" +
-                                'NH4: ' + res['NH4'] +"\n\t" +
-                                'Alchool: ' + res['alcohol'] +"\n\t" +
-                                'Toluen: ' + res['toluen'] +"\n\t" +
-                                'Aceton: ' + res['aceton']
-                            );
-            }
-            break;
-            default:
-                console.log('MQTT: topic not supported:', sarr[sarr.length - 1]);
-            break;
-        }
+
+        //sarr = topic.split('/');
+        parser.parse(payload, topic.split('/'), 'MQTT');
     
     });
 }
 
-function toSensor(data) {
-    if (client == null) {
-        console.log('Error, no sensors connected.')
-    }
 
-    client.publish("sensor/freq", data.sampleFrequency.toString())
-    client.publish("sensor/minv", data.minGas.toString())
-    client.publish("sensor/maxv", data.maxGas.toString())
-    client.publish("sensor/protocol", data.proto.toString())
-}
+//Mybe i should send it with coap, makes more sense that the arduino asks for the update
 
 module.exports = {
-    initialize,
-    toSensor,
+    initialize
 }
