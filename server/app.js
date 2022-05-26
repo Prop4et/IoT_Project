@@ -1,8 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser')
-const mqtt = require('./mqtt')
-const coap = require('./coap')
-const os = require('os')
+const mqtt = require('./protocols/mqtt')
+const coap = require('./protocols/coap')
+const http = require('./protocols/http')
+
+const path = require('path')
 //MQTT
 mqtt.initialize()
 
@@ -11,25 +13,6 @@ mqtt.initialize()
 //coap.requests()
 
 const portHttp = 8080
-
-const netInterface = os.networkInterfaces();
-var resultsNet = {}
-
-// filtering nets on the interface of the host system
-for (const name of Object.keys(netInterface)) {
-    for (const net of netInterface[name]) {
-        // If the IP is IPv4 type and it is not equal to localhost
-        if (net.family === 'IPv4' && !net.internal) {
-            if (!resultsNet[name]) {
-                resultsNet[name] = [];
-            }
-            resultsNet[name].push(net.address);
-        }
-    }
-}
-
-// Public IP
-const host = resultsNet[Object.keys(resultsNet)[0]][0]
 
 const app = express()
 
@@ -51,18 +34,28 @@ app.use(express.static(__dirname + "/public", {
 
 // Http API
 // default API for setup tool
-app.get("/", (request, response)=>{
-  response.sendFile(path.join(__dirname, 'index.html'));
+app.get("/", (req, res)=>{
+  res.sendFile(path.join(__dirname, '/index.html'));
 })
 
 // Retrieve connected sensors ids
+app.get('/update-freq', http.getFreq);
+app.get('/update-gas', http.getGas);
+app.get('/update-proto', http.getProto);
 //app.get('/getIDs', protocols.getIDs)
+app.post('/update-freq', http.updateFreq);
+app.post('/update-gas', http.updateGas);
+app.post('/update-proto', http.updateProto);
+// Change the 404 message modifing the middleware
+app.use(function(req, res, next) {
+  console.log(req)
+  res.status(404).send("Sorry, that route doesn't exist. Have a nice day :)");
+});
 
-// update data for sensor via http protocol
-//app.post('/update-setup', protocols.updateSetup)
 
 
-// listening on http
-app.listen(portHttp, host, ()=>{
-  console.log(`Listening in HTTP on ${host}:${portHttp}.`)
-})
+
+// start the server in the port 3000 !
+app.listen(8080, function () {
+  console.log('Example app listening on port 8080.');
+});
