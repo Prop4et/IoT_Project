@@ -1,12 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser')
-const mqtt = require('./protocols/mqtt')
-const coap = require('./protocols/coap')
-const http = require('./protocols/http')
+const protocols = require('./protocols')
 
 const path = require('path')
 //MQTT
-mqtt.initialize()
+protocols.initializeMQTT()
 
 //CoAP
 //this one needs a little bit of work becaues they are requests fired at will
@@ -40,11 +38,15 @@ app.get("/", (req, res)=>{
 })
 
 //get parameters
+/*
+this is not used anymore, the esp will receive un update on mqtt whenever
+the dashboard updates them
 app.get('/sensor', http.getSensor);
-app.post('/sensor', http.connectSensor);
+*/
+app.post('/sensor', protocols.connectSensor);
 
 //set parameters from dashboard
-app.post('/update-sensor', http.postSensor);
+app.post('/update-sensor', protocols.postSensor);
 
 // Change the 404 message modifing the middleware
 app.use(function(req, res, next) {
@@ -56,6 +58,6 @@ app.use(function(req, res, next) {
 
 
 // start the server in the port 3000 !
-app.listen(8080, '127.0.0.1', function () {
+app.listen(8080, '192.168.1.133', function () {
   console.log('Example app listening on port 8080.');
 });
