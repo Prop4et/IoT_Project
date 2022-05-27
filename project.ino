@@ -3,6 +3,7 @@
 #include <DHT.h>
 #include <MQUnifiedsensor.h>
 #include <PubSubClient.h>
+#include <SPI.h>
 #include <coap-simple.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -32,12 +33,12 @@ const float lat = 44.501;
 const float lon = 11.350;
 int SAMPLE_FREQ = 10000;
 float MIN_GAS_VALUE = 0;
-float MAX_GAS_VALUE = 4995;
+float MAX_GAS_VALUE = 5000;
+int protocol = 1; //1 is MQTT, 2 is COAP
 int AQI = 2; //0 if avg > MAX_GAS_VALUE, 1 if MIN_GAS_VALUE < avg < MAX_GAS_VALUE, 2 otherwise
 int n_sample = 0;
 int shifting_index = 0;
 float array_avg[WINDOW] = {-1, -1, -1, -1, -1};//-1 is not a valid argument for the voltage 
-int protocol = 2; //1 is MQTT, 2 is COAP
 const int doc_info_capacity = JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(2);
 const int doc_temp_hum_capacity = JSON_OBJECT_SIZE(2);
 const int doc_MQ2_capacity = JSON_OBJECT_SIZE(3);
@@ -76,46 +77,49 @@ const char *topic = "sensor/";
 //info -> RSS, id, gps
 //MQ2 -> AQI, smoke, avg
 //PPM -> smoke, CO, CO2, alcohol, toluen, NH4, aceton
-const char *info_topic = "sensor/info";
-const char *temp_hum_topic = "sensor/temp_hum";
-const char *MQ2_topic = "sensor/MQ2";
-const char *PPM_topic = "sensor/PPM";
+//add 3030
+const char *info_topic = "sensor/3030/info";
+const char *temp_hum_topic = "sensor/3030/temp_hum/";
+const char *MQ2_topic = "sensor/3030/MQ2";
+const char *PPM_topic = "sensor/3030/PPM";
+const char *topic_update = "sensor/update/3030";
 //**********************************MQTT vars**********************************************
-WiFiClient mqttWiFi;
-PubSubClient mqttClient(mqttWiFi); //mqttClient for the mqtt publish subscribe
+WiFiClient client;
+PubSubClient mqttClient(client); //mqttClient for the mqtt publish subscribe
 //**********************************MQTT functions*****************************************
 //callback when receiving mqtt response
 void callback_response_mqtt(char *topic, byte *payload, unsigned int length) {
     StaticJsonDocument<256> doc;
     
-    Serial.print("Message arrived in topic: ");
-    Serial.println(topic);
-    //check the response and parse to get the right protocol to talk with 
-    Serial.print("Message:");
     char p[length];
 	memcpy(p, payload, length);
     p[length] = '\0';
-    Serial.println(p);
     DeserializationError error = deserializeJson(doc, (const char*)p, length);
     if(error){
         Serial.print("Deserialization failed: "); 
         Serial.println(error.f_str());
     } 
-    const char* maxGas = doc["maxGas"];
-    Serial.println(maxGas);
+    SAMPLE_FREQ = doc["sampleFrequency"];
+    MAX_GAS_VALUE = doc["maxGas"];
+    MIN_GAS_VALUE = doc["minGas"];
+    protocol = doc["proto"];
+
+    Serial.println("Update received");
+    Serial.print("SF: "); Serial.print(SAMPLE_FREQ); Serial.print("\t maxGas: "); Serial.print(MAX_GAS_VALUE); Serial.print("\t minGas:"); Serial.print(MIN_GAS_VALUE); Serial.print("\tprotocol: "); Serial.println(protocol);
     Serial.println("-----------------------");
 }
 //function for connecting to the mqtt mqttClient
 void mqtt_connect(){
     mqttClient.setServer(mqtt_broker, mqtt_port);
-    //mqttClient.setCallback(callback_response_mqtt); // setup the callback for the mqttClient connection (MQTT) 
+    mqttClient.setCallback(callback_response_mqtt); // setup the callback for the mqttClient connection (MQTT) 
     while (!mqttClient.connected()) {
         String client_id = "esp32-mqttClient-";
         client_id += String(WiFi.macAddress());
         Serial.printf("Trying to connect to the mqtt broker ... ");
-        if (mqttClient.connect(client_id.c_str(), mqtt_username, mqtt_password)) 
+        if (mqttClient.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
+            mqttClient.subscribe(topic_update);
             Serial.println("Connected");
-        else{
+        }else{
             // connection error handler
             Serial.print("Connection failed with state ");
             Serial.print(mqttClient.state());
@@ -147,11 +151,30 @@ void callback_coap_PPM(CoapPacket &packet, IPAddress ip, int port){
     coap.sendResponse(ip, port, packet.messageid, buffer_PPM, strlen(buffer_PPM), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
 //********************************HTTP vars***********************************************
-const char* connectSensor = "192.168.1.94/sensor"; //post
-const char* getSensor = "192.168.1.94/sensor?id=3030"; //Get
-WiFiClient httpWiFi;
-HTTPClient httpClient;
+const char* connectSensor = "http://192.168.1.133:8080/sensor"; //post
+//const char* getSensor = "http://192.168.1.133:8080/sensor?id=3030"; //Get
+StaticJsonDocument<JSON_OBJECT_SIZE(256)> data_doc;
 
+void httpSetup(){
+    HTTPClient http;
+    Serial.println("Post request");
+    http.begin("http://192.168.1.133:8080/sensor");
+    http.addHeader("Content-Type", "application/json");
+    int httpCode = http.POST("{\"id\":\"3030\"}");
+
+    //int httpCode = http.POST("id=3030");
+
+    // httpCode will be negative on error
+    if(httpCode > 0) {
+        // HTTP header has been send and Server response header has been handled
+        Serial.print("[HTTP] POST... code: ");
+        Serial.println(httpCode);
+    } else {
+        Serial.print("[HTTP] POST... failed, error: ");
+        Serial.println(http.errorToString(httpCode).c_str());
+    }
+    http.end();
+}
 //********************************UTILITY functions***************************************
 float average(float *arr, int len){
     float sum = 0;  
@@ -168,11 +191,6 @@ int computeAQI(float avg){
 //serialization
 void serializeData(float RSS, float t, float h, float smoke, float avg, float CO, float CO2, float alcohol, float toluen, float NH4, float aceton){
     //print
-    /*Serial.print("info: "); Serial.print(id); Serial.print(" "); Serial.print(RSS); Serial.print(" "); Serial.print(lon); Serial.print(" "); Serial.println(lat);
-    Serial.print("temperature and humidity: "); Serial.print(t); Serial.print(" "); Serial.println(h);     //gotta jsonize the things
-    Serial.print("MQ2: "); Serial.print(AQI); Serial.print(" "); Serial.print(smoke); Serial.print(" "); Serial.println(avg);
-    Serial.print("PPM: "); Serial.print(CO); Serial.print(" "); Serial.print(CO2); Serial.print(" "); Serial.print(" "); Serial.print(alcohol); Serial.print(" "); Serial.print(toluen); Serial.print(" "); Serial.print(NH4); Serial.print(" "); Serial.println(aceton);
-    */
     info_doc["id"] = id;    info_doc["RSS"] = RSS;    info_doc["gps"]["lat"] = lat;    info_doc["gps"]["lon"] = lon;  //json for the info topic
     temp_hum_doc["temperature"] = t;    temp_hum_doc["humidity"] = h;  //json for the temperature humidity topic 
     MQ2_doc["smoke"] = smoke;   MQ2_doc["AQI"] = AQI; MQ2_doc["avg"] = avg;    //json for the MQ2 sensor
@@ -185,7 +203,6 @@ void serializeData(float RSS, float t, float h, float smoke, float avg, float CO
     
 }
 
-//Point sensor("temp_hum");
 void setup(){
     //serial output
 	Serial.begin(115200);
@@ -220,7 +237,6 @@ void setup(){
     if(calcR0MQ135 == 0){Serial.println("Warning: Conection issue found, R0_MQ135 is zero (Analog pin shorts to ground) please check your wiring and supply"); while(1);}
     
     //WIFI CONNECTION
-
     Serial.print("Attempting to connect to: ");
     Serial.println(ssid);
 	while (status != WL_CONNECTED){
@@ -230,6 +246,13 @@ void setup(){
 	}
 	Serial.print("\nConnected with ip: ");
 	Serial.println(WiFi.localIP());
+    delay(250);
+    StaticJsonDocument<JSON_OBJECT_SIZE(2)> post_id;
+    post_id["id"] = 3030;
+    char buffer_id[sizeof(post_id)];
+    serializeJson(post_id, buffer_id);
+    int err = 0;
+    httpSetup();
     delay(250);
     mqtt_connect();
     coap.server(callback_coap_info, info_topic);
@@ -242,13 +265,44 @@ void setup(){
 long lastMsg = 0;
 
 void loop(){
-    
-    //get parameters through through http maybe it's better cause it's direct 
+    if(WiFi.status() != WL_CONNECTED){
+        WiFi.reconnect();
+        while (WiFi.status() != WL_CONNECTED) {
+            delay(500);
+            Serial.print(".");
+        }
+    }
 
+    //process mqtt keepalive and check if there is an update on the different parameters with the callback
+    mqttClient.loop();
     //WiFi stats 
     long mill = millis();
     if(mill - lastMsg > SAMPLE_FREQ){
+        //If using http i do the update only inside the main loop, otherwise i just loop the mqtt client and the callback will do the trick
+        //prepare the HTTP request for the update of the state, actually could just use mqtt since i have to loop
+        Serial.println("Getting parameters from server");
+        //HTTP used only for communicating to the server that a new sensor connected
+        /*int httpCode = httpGet.GET();
 
+        // httpCode will be negative on error
+        if(httpCode > 0) {
+            // HTTP header has been send and Server response header has been handled
+            Serial.print("[HTTP] GET... code: ");
+            Serial.println(httpCode);
+            // file found at server
+            if(httpCode == HTTP_CODE_OK) {
+                const char* payload = httpGet.getString().c_str();
+                deserializeJson(data_doc, payload);
+                SAMPLE_FREQ = data_doc["sampleFrequency"];
+                MAX_GAS_VALUE = data_doc["gasMax"];
+                MIN_GAS_VALUE = data_doc["gasMin"];
+                protocol = data_doc["proto"];
+            }
+        } else {
+            Serial.print("[HTTP] GET... failed, error: ");
+            Serial.println(httpGet.errorToString(httpCode).c_str());
+        }
+        httpGet.end();*/
         RSS = WiFi.RSSI();
         Serial.println("--------- Data -----------");
         Serial.print("WiFi RSS Strength: ");
@@ -258,7 +312,6 @@ void loop(){
         // Check if any reads failed and exit early (to try again).
         if (isnan(t) || isnan(h)) {    
             Serial.println("Failed to read from DHT sensor!");
-            //sensor.clearFields();
             delay(SAMPLE_FREQ);
             return;
         }
@@ -302,19 +355,23 @@ void loop(){
         //serialize as json
         serializeData(RSS, t, h, smoke, avg, CO, CO2, alcohol, toluen, NH4, aceton);
         lastMsg = mill;
+        if(protocol == 1){
+            Serial.println("MQTT Publish");
+            mqttClient.publish(info_topic, buffer_info, 0);
+            mqttClient.publish(temp_hum_topic, buffer_temp_hum, 0);
+            mqttClient.publish(MQ2_topic, buffer_MQ2, 0);
+            mqttClient.publish(PPM_topic, buffer_PPM, 0);
+        }else if(protocol == 2){
+            Serial.println("CoAP loop");
+        }else{
+            Serial.println("No protocol selected");
+        }
     }
-    if(protocol == 1){
-        mqttClient.publish(info_topic, buffer_info, 0);
-        mqttClient.publish(temp_hum_topic, buffer_temp_hum, 0);
-        mqttClient.publish(MQ2_topic, buffer_MQ2, 0);
-        mqttClient.publish(PPM_topic, buffer_PPM, 0);
-        delay(SAMPLE_FREQ+1);
-    }else if(protocol == 2){
+
+    
+    
+    if((protocol != 1) && (protocol == 2)){
         coap.loop();
-    }
-    else{
-        //coap.loop_client();
-        Serial.println("No protocol selected, likely to have a duplicated ID");
     }
         
 }
