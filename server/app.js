@@ -1,6 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser')
-const protocols = require('./protocols')
+const protocols = require('./js/protocols')
 
 const path = require('path')
 //MQTT
@@ -31,10 +31,16 @@ app.use(express.static(__dirname + "/public", {
   maxAge: "30d"
 }));
 
+// Catch all other invalid routes
+app.all('*', function(req,res){
+    res.status(200).sendFile(__dirname + '/dist/index.html');
+});
+
 // Http API
 // default API for setup tool
+console.log(__dirname)
 app.get("/", (req, res)=>{
-  res.sendFile(path.join(__dirname, '/index.html'));
+  res.sendFile(path.join(__dirname, '/dist/index.html'));
 })
 
 //get parameters
@@ -54,10 +60,7 @@ app.use(function(req, res, next) {
   res.status(404).send("Sorry, that route doesn't exist. Have a nice day :)");
 });
 
-
-
-
 // start the server in the port 3000 !
-app.listen(8080, '192.168.1.133', function () {
+app.listen(8080, '192.168.1.94', function () {
   console.log('Example app listening on port 8080.');
 });
