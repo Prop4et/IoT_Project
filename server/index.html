@@ -1,51 +1,172 @@
 <!DOCTYPE html>
-<html>
+  <!-- Coding by CodingLab | www.codinglabweb.com -->
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
+    <!----======== CSS ======== -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!----===== Boxicons CSS ===== -->
+    <link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    
+    <!--<title>Dashboard Sidebar Menu</title>--> 
 </head>
 <body>
-    <form action="update-sensor" method="post">
-        <div class="">
-            <label class="" for="">Sensor id:</label>
-            <div class="">
-                <input type="text" class="" id="" name="id"
-                    placeholder="xxxx" required>
+    <nav class="sidebar close">
+        <header>
+            <div class="image-text">
+                <span class="image">
+                    <!--<img src="logo.png" alt="">-->
+                </span>
+
+                <div class="text logo-text">
+                    <span class="name"></span>
+                    <span class="profession"></span>
+                </div>
+            </div>
+            
+        </header>
+
+        <div class="menu-bar">
+            <div class="menu">
+
+
+                <ul class="menu-links">
+                    <li class="nav-link">
+                        <a href="#form">
+                            <i class='bx bxs-grid icon' ></i>
+                            <span class="text nav-text">Form Fill</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-link">
+                        <a href="#">
+                            
+                            <i class='bx bx-line-chart icon' ></i>
+                            <span class="text nav-text">Dashboard</span>
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
-        <div class="">
-            <label class="" for="">Sample Frequency:</label>
-            <div class="">
-                <input type="text" class="" id="" name="sampleFrequency"
-                    placeholder="Sample Frequency" required>
+
+    </nav>
+
+    <section class="home">
+        <div class="text" style="color: #60019b"> <div style="float:left;"><i class='bx bx-menu icon toggle' ></i></div> <div style="text-align: center; margin-top:0"> IoT-Home-Monitoring </div>           
             </div>
-        </div>
-        <div class="">
-            <label class="" for="">gas values:</label>
-            <div class="">
-                <input type="text" class="" id="" name="maxGas"
-                    placeholder="Max" required>
-            </div>
-        </div>
-        <div class="">
-            <div class="">
-                <input type="text" class="" id="" name="minGas"
-                    placeholder="Min" required>
-            </div>
-        </div>
-        <div class="">
-            <label class="" for="">protocol:</label>
-            <div class="">
-                <input type="text" class="" id="" name="proto"
-                    placeholder="Protocol (1 or 2)" required>
-            </div>
-        </div>
-        <div class="">
-            <button type="submit" class="">Send</button>
-        </div>
-    </form>
+
+
+        <div class="container">
+            <div class="row" id="form">
+                <div class="col">
+                    <form action="update-sensor" method="post">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>
+                                    <h3>Sensor ID</h3> <!-- qua ci mettiamo una select -->
+                                </th>
+                                <th>
+                                    <h3>Protocol (1/2)</h3> <!-- qua ci mettiamo una select -->
+                                </th>
+                                <th>
+                                    <h3>min gas value</h3>
+                                </th>
+                                <th>
+                                    <h3>MAX gas value</h3>
+                                </th>
+                                <th>
+                                    <h3>Sample F (ms)</h3>
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                
+                            <tr>
+                                <td> 
+                                    <select name="id" id="id"> 
+                                        <option value="None">-</option>
+                                    </select>
+                                </td>
+                                <td> 
+                                    <select name="proto" id="proto"> 
+                                        <option value="None">-</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                    </select>
+                                </td>
+                                <td> <input type="number"  placeholder="0" min="1" placeholder="0" id="minGas"> </td>
+                                <td> <input type="number"  placeholder="5000" min="1" placeholder="5000" id="maxGas"> </td>
+                                <td> <input type="number"  placeholder="10000" min="2000" placeholder="10000" id="sf"> </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <button type="submit" class="">Send</button>
+                    </form>
+                      <table class="table">
+                        <thead>
+                          <tr>
+                            <th>
+                              <h3>Sensor ID</h3>
+                            </th>
+                            <th>
+                                <h3>IP</h3>
+                            </th>
+                            <th>
+                                <h3>Ping</h3>
+                            </th>
+                            <th>
+                                <h3>Protocol</h3>
+                            </th>
+                            <th>
+                                <h3>SF</h3>
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody id="sensors">
+                          <tr>
+                            <td>Product 3</td>
+                            <td>Small</td>
+                            
+                            <td>Medium</td>
+                       
+                            <td>Large</td>
+                            
+                            <td>Ultra</td>
+                            
+                          </tr>
+                          
+                        </tbody>
+                      </table>
+                      
+                </div> <!-- end col -->
+            </div> <!-- end row -->
+        </div> <!-- end container -->
+    </section>
+
+    
+    
+    <script>
+    const body = document.querySelector('body'),
+      sidebar = body.querySelector('nav'),
+      toggle = body.querySelector(".toggle"),
+      searchBtn = body.querySelector(".search-box"),
+      modeSwitch = body.querySelector(".toggle-switch"),
+      modeText = body.querySelector(".mode-text");
+
+
+toggle.addEventListener("click" , () =>{
+    sidebar.classList.toggle("close");
+})
+
+    </script>
 
 </body>
 </html>
-
-
-
