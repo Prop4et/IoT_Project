@@ -3,7 +3,7 @@ const coap = require('coap')
 const config = require('./config')
 const parser = require('./parser')
 
-var params = {}
+var params = {1: {ip: '1.1.1.1', ping:50, sampleFrequency: 10000, gasMin: 0, gasMax: 5000, proto: 1}}
 // ----- MQTT setup -----
 const hostMqtt = config.host; // Broker Mosquitto, should i make mine?
 const portMqtt = config.port; // listen port for MQTT
@@ -70,7 +70,12 @@ function sendUpdate(data, id){
         }
       })
     return true;
-  }
+}
+
+function getIDs(req, res){
+    console.log(req, res);
+    res.json(params);
+}
 
 
 
@@ -183,6 +188,8 @@ function connectSensor(req, res){
     console.log('---------------------');
 
     params[id] = {
+        ip: req.body.ip,
+        ping: 0,
         sampleFrequency: 10000,
         gasMin: 0,
         gasMax: 5000,
@@ -196,7 +203,8 @@ module.exports = {
     postSensor,
     connectSensor,
     initializeMQTT,     
-    sendUpdate 
+    sendUpdate,
+    getIDs
 }
 
 

@@ -1,6 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser')
-const protocols = require('./js/protocols')
+const protocols = require('./protocols')
 
 const path = require('path')
 //MQTT
@@ -33,14 +33,14 @@ app.use(express.static(__dirname + "/public", {
 
 // Catch all other invalid routes
 app.all('*', function(req,res){
-    res.status(200).sendFile(__dirname + '/dist/index.html');
+    res.status(200).sendFile(__dirname + '/index.html');
 });
 
 // Http API
 // default API for setup tool
 console.log(__dirname)
 app.get("/", (req, res)=>{
-  res.sendFile(path.join(__dirname, '/dist/index.html'));
+  res.sendFile(path.join(__dirname, '/index.html'));
 })
 
 //get parameters
@@ -53,6 +53,8 @@ app.post('/sensor', protocols.connectSensor);
 
 //set parameters from dashboard
 app.post('/update-sensor', protocols.postSensor);
+
+app.get('/getIDs', protocols.getIDs);
 
 // Change the 404 message modifing the middleware
 app.use(function(req, res, next) {
