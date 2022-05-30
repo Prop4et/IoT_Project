@@ -6,8 +6,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!----======== CSS ======== -->
-    <link rel="stylesheet" href="style.css">
     
     <!----===== Boxicons CSS ===== -->
     <link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
@@ -289,6 +287,7 @@ header .image-text .profession{
 table{
     margin-top:100px;
     z-index: 10;
+    width: 80%;
 }
 
 .sidebar.close ~ .container{
@@ -304,6 +303,7 @@ th, td{
     text-align: left;
     width: 42em;
     margin-right: 20%;
+    color: #60019b;
 
 }
 select, input{
@@ -315,6 +315,48 @@ select, input{
 .text{
     /*background-color: #c3bee9; */
     color: #60019b;
+}
+
+.custom-btn {
+  width: 130px;
+  height: 40px;
+  padding: 10px 25px;
+  border: 2px solid #60019b;
+  color: #60019b;
+  font-family: 'Lato', sans-serif;
+  font-weight: 500;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  display: inline-block;
+}
+
+
+/* 10 */
+.btn-10 {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+.btn-10:after {
+  position: absolute;
+  content: " ";
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  transition: all 0.3s ease;
+  -webkit-transform: scale(.1);
+  transform: scale(.1);
+}
+.btn-10:hover {
+  color: #fff;
+}
+.btn-10:hover:after {
+  background: #60019b;
+  -webkit-transform: scale(1);
+  transform: scale(1);
 }
     </style>
 </head>
@@ -393,26 +435,24 @@ select, input{
                             <tr>
                                 <td> 
                                     <select name="id" id="id"> 
-                                        <option value="None">-</option>
-                                        <option value="1">1</option>
+                                        <option >-</option>
                                     </select>
                                 </td>
                                 <td> 
                                     <select name="proto" id="proto"> 
-                                        <option value="None">-</option>
+                                        <option >-</option>
                                         <option value="1">1</option>
                                         <option value="2">2</option>
                                     </select>
                                 </td>
-                                <td> <input type="number"  placeholder="0" min="0" placeholder="0" id="minGas"> </td>
-                                <td> <input type="number"  placeholder="5000" min="1" placeholder="5000" id="maxGas"> </td>
-                                <td> <input type="number"  placeholder="10000" min="2000" placeholder="10000" id="sf"> </td>
+                                <td> <input type="text"  placeholder="0" min="0" placeholder="0" name="minGas" id="minGas"> </td>
+                                <td> <input type="text"  placeholder="5000" min="1" placeholder="5000" name="maxGas" id="maxGas"> </td>
+                                <td> <input type="text"  placeholder="10000" min="2000" placeholder="10000" name="sampleFrequency" id="sf"> </td>
                             </tr>
                             </tbody>
                         </table>
-                        <button type="submit" class="">Send</button>
+                        <button type="submit" class="custom-btn btn-10" >Send</button>
                     </form>
-                    <form action="getIDs" method="get">
                       <table class="table">
                         <thead>
                           <tr>
@@ -423,10 +463,10 @@ select, input{
                                 <h3>IP</h3>
                             </th>
                             <th>
-                                <h3>Ping</h3>
+                                <h3>Ping MQTT</h3>
                             </th>
                             <th>
-                                <h3>Protocol</h3>
+                                <h3>Ping CoAP</h3>
                             </th>
                             <th>
                                 <h3>SF</h3>
@@ -445,8 +485,7 @@ select, input{
                           
                         </tbody>
                       </table>
-                      <button type="submit" class="" id="update-btn">Update sensors</button>
-                    </form>
+                      <button type="submit" class="custom-btn btn-10" id="update-btn">TEST</button>
 
                 </div> <!-- end col -->
             </div> <!-- end row -->
@@ -471,7 +510,28 @@ select, input{
     const updateBtn = document.getElementById('update-btn');
     updateBtn.addEventListener('click', (e) => {
         $.get("getIDs", function (data) {
-            console.log('data:', data);
+            const selector = document.getElementById('id');
+            var ids = data.ids;
+            var child = selector.lastElementChild;
+            while(child){
+                selector.removeChild(child);
+                child = selector.lastElementChild;
+            }
+            if(ids == undefined || ids == null || ids.length === 0){
+                var option = document.createElement("option");
+                option.value = "None";
+                option.innerHTML = "-";
+                selector.appendChild(option);
+                return;
+            }
+            //remove all the children
+            console.log(ids);
+            for(var id in ids){
+                var option = document.createElement("option");
+                option.value = ids[id];
+                option.innerHTML = ids[id];
+                selector.appendChild(option);
+            }
         });
     })
 
