@@ -31,14 +31,8 @@ app.use(express.static(__dirname + "/public", {
   maxAge: "30d"
 }));
 
-// Catch all other invalid routes
-app.all('*', function(req,res){
-    res.status(200).sendFile(__dirname + '/index.html');
-});
-
 // Http API
 // default API for setup tool
-console.log(__dirname)
 app.get("/", (req, res)=>{
   res.sendFile(path.join(__dirname, '/index.html'));
 })
@@ -50,6 +44,8 @@ the dashboard updates them
 app.get('/sensor', http.getSensor);
 */
 app.post('/sensor', protocols.connectSensor);
+app.post('/ping', protocols.setPing);
+
 
 //set parameters from dashboard
 app.post('/update-sensor', protocols.postSensor);
@@ -58,11 +54,10 @@ app.get('/getIDs', protocols.getIDs);
 
 // Change the 404 message modifing the middleware
 app.use(function(req, res, next) {
-  console.log(req)
   res.status(404).send("Sorry, that route doesn't exist. Have a nice day :)");
 });
 
 // start the server in the port 3000 !
-app.listen(8080, '192.168.1.94', function () {
-  console.log('Example app listening on port 8080.');
+app.listen(8080, '192.168.1.133', function () {
+  console.log('App server listening on port 8080.');
 });

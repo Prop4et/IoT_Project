@@ -3,7 +3,7 @@ const coap = require('coap')
 const config = require('./config')
 const parser = require('./parser')
 
-var params = {1: {ip: '1.1.1.1', ping:50, sampleFrequency: 10000, gasMin: 0, gasMax: 5000, proto: 1}}
+var params = {}
 // ----- MQTT setup -----
 const hostMqtt = config.host; // Broker Mosquitto, should i make mine?
 const portMqtt = config.port; // listen port for MQTT
@@ -30,24 +30,27 @@ function initializeMQTT() {
     // mqtt event handlers
     client.on('connect', () => {
         console.log(`MQTT client up and running on port: ${portMqtt}.`);
+        try {
+            subtopics.forEach(topic => client.subscribe(topicMqtt+topic))
+          } catch (e) {
+            console.log('MQTT Error: ' + e)
+          }
     });
 
     client.on('message', (topic, payload) => {
         topic_exists = false
+        sarr = topic.split('/');
         subtopics.forEach(subtopic => {
-            sarr = topic.split('/');
             if (sarr[sarr.length - 1] === subtopic){
                 topic_exists = true;
             }
         });
-
+        
         if(!topic_exists){
-            console.log(`MQTT: the selected topic: ${topic} was not found`);
             return;
         }
+        parser.parse(payload, sarr[sarr.length - 1], 'MQTT');
 
-        parser.parse(payload, topic.split('/')[sarr.length - 2], topic.split('/')[sarr.length - 1], 'MQTT');
-    
     });
 }
 
@@ -60,7 +63,7 @@ function sendUpdate(data, id){
     client.publish(
       'sensor/update/'+id,
       JSON.stringify(data),
-      { qos: 1, retain: true },
+      { qos: 1, retain: false },
       (e) => {
         if (e) {
           return false;
@@ -73,8 +76,7 @@ function sendUpdate(data, id){
 }
 
 function getIDs(req, res){
-    console.log(req, res);
-    res.json(params);
+    res.json({ids: Object.keys(params)});
 }
 
 
@@ -133,6 +135,7 @@ function postSensor(req, res){
         res.redirect('/');
         return;
     }
+    console.log("ID: ", id);
     if(data.sampleFrequency < 0 || data.sampleFrequency == undefined || data.sampleFrequency == null){
         console.log('HTTP Error: Invalid values received for sample frequency');
         console.log('-----------------------------');
@@ -178,25 +181,30 @@ function connectSensor(req, res){
         return;
     }
 
-    console.log('---------------------');
-    console.log('Topics: ');
-    subtopics.forEach(subtopic => {
-        client.subscribe(topicMqtt+id+'/'+[subtopic], () => {
-            console.log(`Subscribed to: '${topicMqtt}${subtopic}'`);
-        })
-    })
-    console.log('---------------------');
-
     params[id] = {
         ip: req.body.ip,
-        ping: 0,
+        ping: 'No',
         sampleFrequency: 10000,
         gasMin: 0,
         gasMax: 5000,
-        proto: 1
+        proto: 3
     }
     console.log('parameters set up', params);
     res.sendStatus(200);
+}
+
+function setPing(req, res){
+    const id = req.body.id;
+    const ping = req.body.ping;
+    if(id in params){
+        console.log("Ping for sensor " + id + ': ' + ping);
+        params[id]["ping"] = ping+'ms';
+        console.log(params);
+        res.sendStatus(200);
+    }
+    else    
+        res.status(404).send("Sensor uknown");
+
 }
 
 module.exports = {
@@ -204,7 +212,8 @@ module.exports = {
     connectSensor,
     initializeMQTT,     
     sendUpdate,
-    getIDs
+    getIDs, 
+    setPing
 }
 
 
