@@ -448,9 +448,8 @@ select, input{
                                 <td> 
                                     <select name="proto" id="proto"> 
                                         <option >-</option>
-                                        <option value="1">1</option>
-                                        <option value="2">2</option>
-                                        <option value="2">3</option>
+                                        <option value="1">mqtt</option>
+                                        <option value="2">coap</option>
                                     </select>
                                 </td>
                                 <td> <input type="text"  placeholder="0" min="0" placeholder="0" name="minGas" id="minGas"> </td>
@@ -486,7 +485,7 @@ select, input{
                           
                         </tbody>
                       </table>
-                      <button type="submit" class="custom-btn btn-10" id="update-btn">TEST</button>
+                      <button type="submit" class="custom-btn btn-10" id="update-btn" onclick="updateInterface">TEST</button>
 
                 </div> <!-- end col -->
             </div> <!-- end row -->
