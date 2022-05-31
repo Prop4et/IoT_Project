@@ -5,7 +5,6 @@ const protocols = require('./protocols')
 const path = require('path')
 //MQTT
 protocols.initializeMQTT()
-
 //CoAP
 //this one needs a little bit of work becaues they are requests fired at will
 //coap.requests()
@@ -31,6 +30,7 @@ app.use(express.static(__dirname + "/public", {
   maxAge: "30d"
 }));
 
+let clients = []
 // Http API
 // default API for setup tool
 app.get("/", (req, res)=>{
@@ -50,7 +50,7 @@ app.post('/ping', protocols.setPing);
 //set parameters from dashboard
 app.post('/update-sensor', protocols.postSensor);
 
-app.get('/getIDs', protocols.getIDs);
+app.get('/getSensors', protocols.getSensors);
 
 // Change the 404 message modifing the middleware
 app.use(function(req, res, next) {

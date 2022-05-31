@@ -303,9 +303,16 @@ th, td{
     text-align: left;
     width: 42em;
     margin-right: 20%;
-    color: #60019b;
-
 }
+
+thead th, td{
+    color: #60019b;
+}
+
+tbody tr td{
+    color: black;
+}
+
 select, input{
     padding-top: 0.25em;
     padding-bottom: 0.25em;
@@ -420,13 +427,13 @@ select, input{
                                     <h3>Protocol (1/2)</h3> <!-- qua ci mettiamo una select -->
                                 </th>
                                 <th>
-                                    <h3>min gas value</h3>
+                                    <h3>Min gas value</h3>
                                 </th>
                                 <th>
-                                    <h3>MAX gas value</h3>
+                                    <h3>Max gas value</h3>
                                 </th>
                                 <th>
-                                    <h3>Sample F (ms)</h3>
+                                    <h3>Sample F [ms]</h3>
                                 </th>
                             </tr>
                             </thead>
@@ -443,6 +450,7 @@ select, input{
                                         <option >-</option>
                                         <option value="1">1</option>
                                         <option value="2">2</option>
+                                        <option value="2">3</option>
                                     </select>
                                 </td>
                                 <td> <input type="text"  placeholder="0" min="0" placeholder="0" name="minGas" id="minGas"> </td>
@@ -451,9 +459,9 @@ select, input{
                             </tr>
                             </tbody>
                         </table>
-                        <button type="submit" class="custom-btn btn-10" >Send</button>
+                        <button type="submit" class="custom-btn btn-10" onclick="updateInterface">Send</button>
                     </form>
-                      <table class="table">
+                      <table class="table" id="sensors">
                         <thead>
                           <tr>
                             <th>
@@ -463,25 +471,18 @@ select, input{
                                 <h3>IP</h3>
                             </th>
                             <th>
-                                <h3>Ping MQTT</h3>
+                                <h3>MQTT[ms]</h3>
                             </th>
                             <th>
-                                <h3>Ping CoAP</h3>
+                                <h3>CoAP[ms]</h3>
                             </th>
                             <th>
                                 <h3>SF</h3>
                             </th>
                           </tr>
                         </thead>
-                        <tbody id="sensors">
-                          <!--<tr>
-                            <td>Product 3</td>
-                            <td>Small</td>
-                            <td>Medium</td>
-                            <td>Large</td>
-                            <td>Ultra</td>
-                            
-                          </tr> -->
+                        <tbody id="sensors-body" style="color:black">
+                        
                           
                         </tbody>
                       </table>
@@ -496,27 +497,41 @@ select, input{
     
     <script>
     const body = document.querySelector('body'),
-      sidebar = body.querySelector('nav'),
-      toggle = body.querySelector(".toggle"),
-      searchBtn = body.querySelector(".search-box"),
-      modeSwitch = body.querySelector(".toggle-switch"),
-      modeText = body.querySelector(".mode-text");
+    sidebar = body.querySelector('nav'),
+    toggle = body.querySelector(".toggle"),
+    searchBtn = body.querySelector(".search-box"),
+    modeSwitch = body.querySelector(".toggle-switch"),
+    modeText = body.querySelector(".mode-text");
 
+    var updateTime = 10000;
 
     toggle.addEventListener("click" , () =>{
         sidebar.classList.toggle("close");
     })
 
     const updateBtn = document.getElementById('update-btn');
-    updateBtn.addEventListener('click', (e) => {
-        $.get("getIDs", function (data) {
+
+    function updateInterface(){
+        
+    }
+
+    function updateInterface() {
+        $.get("getSensors", function (data) {
             const selector = document.getElementById('id');
-            var ids = data.ids;
-            var child = selector.lastElementChild;
-            while(child){
-                selector.removeChild(child);
-                child = selector.lastElementChild;
+            const body = document.getElementById("sensors-body");
+            var ids = Object.keys(data);
+            var childSelector = selector.lastElementChild;
+            var childTable = body.lastElementChild;
+            //remove all the children
+            while(childSelector){
+                selector.removeChild(childSelector);
+                childSelector = selector.lastElementChild;
             }
+            while(childTable){
+                body.removeChild(childTable);
+                childTable = body.lastElementChild;
+            }
+
             if(ids == undefined || ids == null || ids.length === 0){
                 var option = document.createElement("option");
                 option.value = "None";
@@ -524,16 +539,36 @@ select, input{
                 selector.appendChild(option);
                 return;
             }
-            //remove all the children
-            console.log(ids);
+
             for(var id in ids){
+                //update selector for the ids
                 var option = document.createElement("option");
                 option.value = ids[id];
                 option.innerHTML = ids[id];
                 selector.appendChild(option);
+                //update sensors row
+                var row = body.insertRow();
+                cell1 = row.insertCell();
+                cell2 = row.insertCell();
+                cell3 = row.insertCell();
+                cell4 = row.insertCell();
+                cell5 = row.insertCell();
+                
+                cell1.innerHTML = ids[id];
+                cell2.innerHTML = data[ids[id]]["ip"];
+                cell3.innerHTML = data[ids[id]]["mqttping"];
+                cell4.innerHTML = data[ids[id]]["coapping"];
+                cell5.innerHTML = data[ids[id]]["sampleFrequency"];
+
             }
+
+            //update table rows
         });
-    })
+
+    }
+    updateBtn.onclick = updateInterface();
+    setInterval(updateInterface(), updateTime);
+
 
     </script>
 
