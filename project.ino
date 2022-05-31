@@ -107,13 +107,13 @@ void callback_response_mqtt(char *topic, byte *payload, unsigned int length) {
         if(protocol != 3){
             previousProto = protocol;
             SAMPLE_FREQ = doc["sampleFrequency"];
-            MAX_GAS_VALUE = doc["maxGas"];
-            MIN_GAS_VALUE = doc["minGas"];
+            MAX_GAS_VALUE = doc["gasMin"];
+            MIN_GAS_VALUE = doc["gasMax"];
             protocol = doc["proto"];
         }else {
             SAMPLE_FREQ = doc["sampleFrequency"];
-            MAX_GAS_VALUE = doc["maxGas"];
-            MIN_GAS_VALUE = doc["minGas"];
+            MAX_GAS_VALUE = doc["gasMin"];
+            MIN_GAS_VALUE = doc["gasMax"];
             previousProto = doc["proto"];
         }
 
@@ -209,14 +209,13 @@ int computeAQI(float avg){
     return avg >= MAX_GAS_VALUE ? 0 : (avg < MIN_GAS_VALUE ? 2 : 1);
 }
 
-
 //serialization
 void serializeData(float RSS, float t, float h, float smoke, float avg, float CO, float CO2, float alcohol, float toluen, float NH4, float aceton){
     //print
     info_doc["id"] = id;    info_doc["RSS"] = RSS;    info_doc["gps"]["lat"] = lat;    info_doc["gps"]["lon"] = lon;  //json for the info topic
     temp_hum_doc["id"] = id;   temp_hum_doc["temperature"] = t;    temp_hum_doc["humidity"] = h;  //json for the temperature humidity topic 
     MQ2_doc["id"] = id; MQ2_doc["smoke"] = smoke;   MQ2_doc["AQI"] = AQI; MQ2_doc["avg"] = avg;    //json for the MQ2 sensor
-    PPM_doc["id"] = id; PPM_doc["CO"] = CO;    PPM_doc["CO2"] = CO2;    PPM_doc["al"] = alcohol;   PPM_doc["to"] = toluen;    PPM_doc["NH4"] = NH4;    PPM_doc["ac"] = aceton; //PPM json    
+    PPM_doc["id"] = id; PPM_doc["CO"] = CO;   PPM_doc["CO2"] = CO2;    PPM_doc["al"] = alcohol;   PPM_doc["to"] = toluen;    PPM_doc["NH4"] = NH4;    PPM_doc["ac"] = aceton; //PPM json    
     //send it 
     serializeJson(info_doc, buffer_info);
     serializeJson(temp_hum_doc, buffer_temp_hum);
@@ -401,7 +400,7 @@ void loop(){
     
     
     
-    if((protocol != 1) && (protocol == 2)){
+    if(protocol == 2){
         coap.loop();
     }
         

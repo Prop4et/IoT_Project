@@ -2,7 +2,6 @@ const mqtt = require('mqtt')
 const coap = require('coap')
 const config = require('./config')
 const parser = require('./parser')
-
 var params = {}
 // ----- MQTT setup -----
 const hostMqtt = config.host; // Broker Mosquitto, should i make mine?
@@ -75,45 +74,72 @@ function sendUpdate(data, id){
     return true;
 }
 
-function getIDs(req, res){
-    res.json({ids: Object.keys(params)});
+function getSensors(req, res){
+    res.json(params);
 }
 
 
 
 1//-----------------------------------CoAP-------------------------------
-function coapReq(){
-    const topicMqtt = parser.topicMqtt;
-    const subtopics = parser.subtopics;
-    const server = coap.createServer()
+var req0, req1, req2, req3;
+function coapReq(ip, sf){
     setInterval( () => {
-        var req0 = coap.request('coap://192.168.1.229/'+topicMqtt+subtopics[0])
+        req0 = coap.request({
+            observe: true,
+            hostname: ip,
+            pathname: '/'+topicMqtt+subtopics[0],
+            port: 5683,
+            method: 'get',
+            confirmable: 'true',
+            retrySend: 'true'
+        });
+        //req0 = coap.request(ip+'/'+topicMqtt+subtopics[0])
         req0.on('response', (res) => {
             parser.parse(res.payload, subtopics[0], 'CoAP');
         })
-
-        var req1 = coap.request('coap://192.168.1.229/'+topicMqtt+subtopics[1])
+        req0.end();
+        req1 = coap.request({
+            observe: true,
+            hostname: ip,
+            pathname: '/'+topicMqtt+subtopics[1],
+            port: 5683,
+            method: 'get',
+            confirmable: 'true',
+            retrySend: 'true'
+        });
         req1.on('response', (res) => {
             parser.parse(res.payload, subtopics[1], 'CoAP');
         })
-
-        var req2 = coap.request('coap://192.168.1.229/'+topicMqtt+subtopics[2])
+        req1.end();
+        req2 = coap.request({
+            observe: true,
+            hostname: ip,
+            pathname: '/'+topicMqtt+subtopics[2],
+            port: 5683,
+            method: 'get',
+            confirmable: 'true',
+            retrySend: 'true'
+        });
         req2.on('response', (res) => {
             parser.parse(res.payload, subtopics[2], 'CoAP');
         })
-
-        var req3 = coap.request('coap://192.168.1.229/'+topicMqtt+subtopics[3])
+        req2.end();
+        req3  = coap.request({
+            observe: true,
+            hostname: ip,
+            pathname: '/'+topicMqtt+subtopics[3],
+            port: 5683,
+            method: 'get',
+            confirmable: 'true',
+            retrySend: 'true'
+        });
         req3.on('response', (res) => {
             parser.parse(res.payload, subtopics[3], 'CoAP');
         })
-
-        setTimeout( () => {
-            req0.end();
-            req1.end();
-            req2.end();
-            req3.end();
-        }, 1000);
-    }, 9000);
+        req3.end();
+        /*setTimeout( () => {
+        }, 1000);*/
+    }, sf);
 }
 
 //------------------------------------HTTP-------------------------------
@@ -125,8 +151,8 @@ function postSensor(req, res){
     const id = req.body.id;
     const data = {
         sampleFrequency: parseInt(req.body.sampleFrequency),
-        gasMin: parseFloat(req.body.minGas),
-        gasMax: parseFloat(req.body.maxGas),
+        gasMin: parseInt(req.body.minGas),
+        gasMax: parseInt(req.body.maxGas),
         proto: parseInt(req.body.proto)
     }
     //id unknown
@@ -136,10 +162,11 @@ function postSensor(req, res){
         return;
     }
     console.log("ID: ", id);
-    if(data.sampleFrequency < 0 || data.sampleFrequency == undefined || data.sampleFrequency == null){
+    var prevProto = params[id].proto;
+    if(data.sampleFrequency < 0 || data.sampleFrequency == undefined || data.sampleFrequency == null || isNaN(data.sampleFrequency)){
         console.log('HTTP Error: Invalid values received for sample frequency');
         console.log('-----------------------------');
-        data.sampleFrequency = params["id"].sampleFrequency;
+        data.sampleFrequency = params[id].sampleFrequency;
     }else console.log('HTTP received a new value for the sample frequency ' + data.sampleFrequency);
 
     if(data.gasMin > data.gasMax){
@@ -147,25 +174,41 @@ function postSensor(req, res){
         data.gasMin = params[id].gasMin;
         data.gasMax = params[id].gasMax;
     }
-    if(data.gasMin !== undefined && data.gasMin !== null) console.log('HTTP: New value for MIN_GAS_VALUE: ' + data.gasMin);
+    if(data.gasMin !== undefined && data.gasMin !== null && !isNaN(data.gasMin)) console.log('HTTP: New value for MIN_GAS_VALUE: ' + data.gasMin);
     else{
         console.log('HTTP Error: invalid minGas value')
         data.gasMin = params[id].gasMin;
     }
-    if(data.gasMax !== undefined && data.gasMax !== null) console.log('HTTP: New value for MAX_GAS_VALUE: ' + data.gasMax);
+    if(data.gasMax !== undefined && data.gasMax !== null && !isNaN(data.gasMax)) console.log('HTTP: New value for MAX_GAS_VALUE: ' + data.gasMax);
     else{
         console.log('HTTP Error: invalid minGas value')
         data.gasMax = params[id].gasMax;
     }
 
-    if (data.proto == undefined || data.proto == null || (data.proto !== 1 && data.proto !== 2)) {
+    if (data.proto == undefined || data.proto == null || isNaN(data.proto) || (data.proto !== 1 && data.proto !== 2 && data.proto != 3)) {
         console.log('HTTP Error: Invalid data received, no valid protocol, defaulting to MQTT');
         data.proto = params[id].proto;
     }else console.log('HTTP received a new value for the protocol ' + data.proto);
 
-    params[id] = data;
-    console.log(params);
+    params[id].sampleFrequency = data.sampleFrequency;
+    params[id].gasMin = data.gasMin;
+    params[id].gasMax = data.gasMax;
+    params[id].proto = data.proto;
     sendUpdate(data, id);
+    if(prevProto != data.proto){
+        if(data.proto == 2)
+            coapReq(params[id].ip, params[id].sampleFrequency)
+        if(data.proto == 1){
+            req0.on('response', (res) =>{});
+            req1.on('response', (res) =>{});
+            req2.on('response', (res) =>{});
+            req3.on('response', (res) =>{});
+            req0.end();
+            req1.end();
+            req2.end();
+            req3.end();
+        }
+    }
     console.log('..... Update done');
     res.redirect('/');
 
@@ -183,23 +226,23 @@ function connectSensor(req, res){
 
     params[id] = {
         ip: req.body.ip,
-        ping: 'No',
+        mqttping: 'No',
+        coapping: 'No',
         sampleFrequency: 10000,
         gasMin: 0,
         gasMax: 5000,
         proto: 3
     }
-    console.log('parameters set up', params);
+    
     res.sendStatus(200);
+
 }
 
 function setPing(req, res){
     const id = req.body.id;
-    const ping = req.body.ping;
     if(id in params){
-        console.log("Ping for sensor " + id + ': ' + ping);
-        params[id]["ping"] = ping+'ms';
-        console.log(params);
+        params[id]["mqttping"] = req.body.ping;
+        params[id]["proto"] = 1;
         res.sendStatus(200);
     }
     else    
@@ -212,7 +255,7 @@ module.exports = {
     connectSensor,
     initializeMQTT,     
     sendUpdate,
-    getIDs, 
+    getSensors,
     setPing
 }
 
