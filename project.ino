@@ -8,6 +8,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
+#include <Thing.CoAP.h>
 
 //*********************************DHT HW PARAMS ***************************************
 #define DHTPIN 4
@@ -37,7 +38,10 @@ float MAX_GAS_VALUE = 5000;
 long pingSum = 0; //total rtt of the ping packets
 long timeSend = 0; //time of sending the ping packet
 bool received = true;//received a ping packet or not
-int npings = 0; //number of ping packets received, max 4
+int npingsmqtt = 0; //number of ping packets received, max 4
+int npingscoap = 0;
+float sentpingmqtt = 0;
+float nratiomqtt = 0;
 int protocol = 3; //1 is MQTT, 2 is COAP, 3 is ping test
 int previousProto = 1;
 int AQI = 2; //0 if avg > MAX_GAS_VALUE, 1 if MIN_GAS_VALUE < avg < MAX_GAS_VALUE, 2 otherwise
@@ -110,11 +114,14 @@ void callback_response_mqtt(char *topic, byte *payload, unsigned int length) {
             MAX_GAS_VALUE = doc["gasMin"];
             MIN_GAS_VALUE = doc["gasMax"];
             protocol = doc["proto"];
+
         }else {
             SAMPLE_FREQ = doc["sampleFrequency"];
             MAX_GAS_VALUE = doc["gasMin"];
             MIN_GAS_VALUE = doc["gasMax"];
-            previousProto = doc["proto"];
+            int app = doc["proto"];
+            if(app != 3)
+                previousProto = app;
         }
 
         Serial.println("Update received");
@@ -122,10 +129,12 @@ void callback_response_mqtt(char *topic, byte *payload, unsigned int length) {
         Serial.println("-----------------------");
     }
     if(!strcmp(topic, "sensor/ping/3030")){
-        pingSum = millis() - timeSend;
+        pingSum += millis() - timeSend;
         received = !received;
-        npings++;
-
+        npingsmqtt++;
+    }
+    if(!strcmp(topic, "sensor/ping/3030/count")){
+        sentpingmqtt++;
     }
 }
 //function for connecting to the mqtt mqttClient
@@ -139,6 +148,7 @@ void mqtt_connect(){
         if (mqttClient.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
             mqttClient.subscribe(topic_update);
             mqttClient.subscribe("sensor/ping/3030");
+            mqttClient.subscribe("sensor/ping/3030/count");
             Serial.println("Connected");
         }else{
             // connection error handler
@@ -175,6 +185,14 @@ void callback_coap_PPM(CoapPacket &packet, IPAddress ip, int port){
     Serial.println("Coap request in PPM");
     coap.sendResponse(ip, port, packet.messageid, buffer_PPM, strlen(buffer_PPM), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
+
+void callback_coap_ping(CoapPacket &packet, IPAddress ip, int port){
+    Serial.println("Coap request in ping");
+    char* buf = "ping";
+    npingscoap += 1;
+    coap.sendResponse(ip, port, packet.messageid, buf, strlen(buf), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+}
+
 //********************************HTTP vars***********************************************
 const char* connectSensor = "http://192.168.1.133:8080/sensor"; //post
 StaticJsonDocument<JSON_OBJECT_SIZE(256)> data_doc;
@@ -280,6 +298,7 @@ void setup(){
     coap.server(callback_coap_temp_hum, temp_hum_topic);
     coap.server(callback_coap_MQ2, MQ2_topic);
     coap.server(callback_coap_PPM, PPM_topic);
+    coap.server(callback_coap_ping, "sensor/ping");
     coap.start(5683);
 
 }
@@ -300,7 +319,7 @@ void loop(){
     mqttClient.loop();
     //WiFi stats 
     long mill = millis();
-    if(mill - lastMsg > SAMPLE_FREQ){
+    if(mill - lastMsg > SAMPLE_FREQ && protocol != 3){
         
         RSS = WiFi.RSSI();
         Serial.println("--------- Data -----------");
@@ -368,33 +387,45 @@ void loop(){
     }
 
     if(protocol == 3){
-        if(received && npings<4){
+        if(received && npingsmqtt< 10){
             received = !received;
             timeSend = millis();
             mqttClient.publish("sensor/ping/3030", "ping");
-        }else if(npings >= 4){
-            HTTPClient http;
-            Serial.println("Post request");
-            http.begin("http://192.168.1.133:8080/ping");
-            http.addHeader("Content-Type", "application/json");
-            char pingVal[6];
-            pingSum = pingSum / 4;
-            snprintf((char *) pingVal, 6, "%ld", pingSum);
-            int httpCode = http.POST("{\"id\":\"3030\", \"ping\":\""+ String(pingVal)+"\"}");
+        }else if(npingsmqtt >= 10){
+            if(nratiomqtt < 20){
+                mqttClient.publish("sensor/ping/3030/count", "ping");
+                delay(pingSum / (npingsmqtt+1));
+                nratiomqtt++;
+            }else{
+                float ratiomqtt = sentpingmqtt/nratiomqtt; 
+                HTTPClient http;
+                Serial.println("Post request");
+                http.begin("http://192.168.1.133:8080/ping");
+                http.addHeader("Content-Type", "application/json");
+                char pingVal[6];
+                pingSum = pingSum / (npingsmqtt+1);
+                snprintf((char *) pingVal, 6, "%ld", pingSum);
+                int httpCode = http.POST("{\"id\":\"3030\", \"ping\":\""+ String(pingVal)+"\", \"ratio\":\""+ String(ratiomqtt)+"\"}");
 
-            // httpCode will be negative on error
-            if(httpCode > 0) {
-                // HTTP header has been send and Server response header has been handled
-                Serial.print("[HTTP] POST... code: ");
-                Serial.println(httpCode);
-            } else {
-                Serial.print("[HTTP] POST... failed, error: ");
-                Serial.println(http.errorToString(httpCode).c_str());
+                // httpCode will be negative on error
+                if(httpCode > 0) {
+                    // HTTP header has been send and Server response header has been handled
+                    Serial.print("[HTTP] POST... code: ");
+                    Serial.println(httpCode);
+                } else {
+                    Serial.print("[HTTP] POST... failed, error: ");
+                    Serial.println(http.errorToString(httpCode).c_str());
+                }
+                http.end();
+                protocol = previousProto;
+                npingsmqtt = 0;
+                npingscoap = 0;
+                received = true;
+                mqttClient.unsubscribe("sensor/ping/3030");
+                mqttClient.unsubscribe("sensor/ping/3030/count");
             }
-            http.end();
-            protocol = previousProto;
-            npings = 0;
-            received = true;
+
+
         }
     }
     

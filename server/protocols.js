@@ -137,13 +137,41 @@ function coapReq(ip, sf){
             parser.parse(res.payload, subtopics[3], 'CoAP');
         })
         req3.end();
-        /*setTimeout( () => {
-        }, 1000);*/
     }, sf);
 }
 
-//------------------------------------HTTP-------------------------------
+function coapPing(id, ip){
+    let d = new Date();
+    var tottime = 0;
+    let sendTime = d.getTime();
+        var pingreq = coap.request({
+            observe: false,
+            hostname: ip,
+            pathname: '/sensor/ping',
+            port: 5683,
+            method: 'get',
+            confirmable: 'true',
+            retrySend: 'false'
+        });
+        //req0 = coap.request(ip+'/'+topicMqtt+subtopics[0])
+        pingreq.on('response', (res) => {
+            res.pipe(process.stdout)
+            res.on('end', () => {
+                console.log(sendTime, d.getTime());
+            })
+        })
 
+        pingreq.on('timeout', (res) => {
+            tottime = d.getTime() - sendTime;
+        })
+        pingreq.end();
+
+    /*params[id]["coapratio"] = receivedn/10;
+    params[id]["pingcoap"] = tottime/receivedn;*/
+    
+}
+
+//------------------------------------HTTP-------------------------------
 //resources value
 //nothing is sanitized and types aren't checked
 function postSensor(req, res){
@@ -156,13 +184,12 @@ function postSensor(req, res){
         proto: parseInt(req.body.proto)
     }
     //id unknown
-    if(!(id in params)) {
+    if(isNaN(id) || !(id in params)) {
         console.log('HTTP Error: ID ' + id + ' not found for the update');
         res.redirect('/');
         return;
     }
     console.log("ID: ", id);
-    var prevProto = params[id].proto;
     if(data.sampleFrequency < 0 || data.sampleFrequency == undefined || data.sampleFrequency == null || isNaN(data.sampleFrequency)){
         console.log('HTTP Error: Invalid values received for sample frequency');
         console.log('-----------------------------');
@@ -185,7 +212,7 @@ function postSensor(req, res){
         data.gasMax = params[id].gasMax;
     }
 
-    if (data.proto == undefined || data.proto == null || isNaN(data.proto) || (data.proto !== 1 && data.proto !== 2 && data.proto != 3)) {
+    if (data.proto == undefined || data.proto == null || isNaN(data.proto) || data.proto < 1 || data.proto > 3) {
         console.log('HTTP Error: Invalid data received, no valid protocol, defaulting to MQTT');
         data.proto = params[id].proto;
     }else console.log('HTTP received a new value for the protocol ' + data.proto);
@@ -194,21 +221,15 @@ function postSensor(req, res){
     params[id].gasMin = data.gasMin;
     params[id].gasMax = data.gasMax;
     params[id].proto = data.proto;
+
+    //clearInterval();
+    
     sendUpdate(data, id);
-    if(prevProto != data.proto){
-        if(data.proto == 2)
-            coapReq(params[id].ip, params[id].sampleFrequency)
-        if(data.proto == 1){
-            req0.on('response', (res) =>{});
-            req1.on('response', (res) =>{});
-            req2.on('response', (res) =>{});
-            req3.on('response', (res) =>{});
-            req0.end();
-            req1.end();
-            req2.end();
-            req3.end();
-        }
-    }
+    
+    /*if(data.proto == 2)
+        coapReq(params[id].ip, params[id].sampleFrequency)
+    */
+    
     console.log('..... Update done');
     res.redirect('/');
 
@@ -228,12 +249,14 @@ function connectSensor(req, res){
         ip: req.body.ip,
         mqttping: 'No',
         coapping: 'No',
+        mqttratio: 1,
+        coapratio: 1,
         sampleFrequency: 10000,
         gasMin: 0,
         gasMax: 5000,
-        proto: 3
+        proto: 3 
     }
-    
+
     res.sendStatus(200);
 
 }
@@ -241,7 +264,10 @@ function connectSensor(req, res){
 function setPing(req, res){
     const id = req.body.id;
     if(id in params){
+        console.log(req.body);
         params[id]["mqttping"] = req.body.ping;
+        params[id]["mqttratio"] = req.body.ratio;
+        console.log(req.body.ratio);
         params[id]["proto"] = 1;
         res.sendStatus(200);
     }
