@@ -12,7 +12,7 @@
     - [x] Runtime change
     - [x] InfluxDB write integration
 - [ ] Data mgmt system
-    - [ ] InlfuxDB query 
+    - [x] InlfuxDB query 
     - [ ] Grafana Dashboard for each data flow
     - [ ] Grafana alert for AQI >= 1
 - [ ] Data Analytics
