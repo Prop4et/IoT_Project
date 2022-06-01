@@ -6,9 +6,15 @@
     - [x] MQ135
 
 - [ ] Data proxy
-
+    -[x] MQTT 
+    -[x] CoAP
+    -[x] Ping
+    -[x] Runtime change
+    -[ ] InfluxDB write integration
 - [ ] Data mgmt system
-
+    -[ ] InlfuxDB query 
+    -[ ] Grafana Dashboard for each data flow
+    -[ ] Grafana alert for AQI >= 1
 - [ ] Data Analytics
 
 ### Additional Components
