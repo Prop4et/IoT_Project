@@ -10,7 +10,7 @@
     - [x] CoAP
     - [x] Ping
     - [x] Runtime change
-    - [ ] InfluxDB write integration
+    - [x] InfluxDB write integration
 - [ ] Data mgmt system
     - [ ] InlfuxDB query 
     - [ ] Grafana Dashboard for each data flow
