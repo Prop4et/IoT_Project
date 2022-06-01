@@ -448,8 +448,8 @@ select, input{
                                 <td> 
                                     <select name="proto" id="proto"> 
                                         <option >-</option>
-                                        <option value="1">mqtt</option>
-                                        <option value="2">coap</option>
+                                        <option value="1" id="mqttopt">mqtt</option>
+                                        <option value="2" id="coapopt">coap</option>
                                     </select>
                                 </td>
                                 <td> <input type="text"  placeholder="0" min="0" placeholder="0" name="minGas" id="minGas"> </td>
@@ -458,7 +458,7 @@ select, input{
                             </tr>
                             </tbody>
                         </table>
-                        <button type="submit" class="custom-btn btn-10" onclick="updateInterface">Send</button>
+                        <button type="submit" class="custom-btn btn-10" id="send-btn">Send</button>
                     </form>
                       <table class="table" id="sensors">
                         <thead>
@@ -470,10 +470,12 @@ select, input{
                                 <h3>IP</h3>
                             </th>
                             <th>
-                                <h3>MQTT[ms]</h3>
+                                <h3>MQTT</h3>
+                                <h5>ping | ratio</h5>
                             </th>
                             <th>
-                                <h3>CoAP[ms]</h3>
+                                <h3>CoAP</h3>
+                                <h5>ping | ratio</h5>
                             </th>
                             <th>
                                 <h3>SF</h3>
@@ -485,7 +487,7 @@ select, input{
                           
                         </tbody>
                       </table>
-                      <button type="submit" class="custom-btn btn-10" id="update-btn" onclick="updateInterface">TEST</button>
+                      <button type="submit" class="custom-btn btn-10" id="update-btn">TEST</button>
 
                 </div> <!-- end col -->
             </div> <!-- end row -->
@@ -502,19 +504,17 @@ select, input{
     modeSwitch = body.querySelector(".toggle-switch"),
     modeText = body.querySelector(".mode-text");
 
-    var updateTime = 10000;
+    var updateTime = 5000;
 
     toggle.addEventListener("click" , () =>{
         sidebar.classList.toggle("close");
     })
 
     const updateBtn = document.getElementById('update-btn');
-
+    const sendBtn = document.getElementById('send-btn');
+    updateBtn.addEventListener("click", (e) => updateInterface());
+    sendBtn.addEventListener("click", (e) => updateInterface());
     function updateInterface(){
-        
-    }
-
-    function updateInterface() {
         $.get("getSensors", function (data) {
             const selector = document.getElementById('id');
             const body = document.getElementById("sensors-body");
@@ -531,15 +531,18 @@ select, input{
                 childTable = body.lastElementChild;
             }
 
-            if(ids == undefined || ids == null || ids.length === 0){
-                var option = document.createElement("option");
-                option.value = "None";
-                option.innerHTML = "-";
-                selector.appendChild(option);
+            var option = document.createElement("option");
+            option.value = "None";
+            option.innerHTML = "-";
+            selector.appendChild(option);
+
+            if(ids == undefined || ids == null || ids.length === 0)
                 return;
-            }
 
             for(var id in ids){
+
+                if(!data[ids[id]]["isSet"])
+                    continue;
                 //update selector for the ids
                 var option = document.createElement("option");
                 option.value = ids[id];
@@ -555,20 +558,23 @@ select, input{
                 
                 cell1.innerHTML = ids[id];
                 cell2.innerHTML = data[ids[id]]["ip"];
-                cell3.innerHTML = data[ids[id]]["mqttping"];
-                cell4.innerHTML = data[ids[id]]["coapping"];
+                if(data[ids[id]]["mqttping"])
+                    cell3.innerHTML = data[ids[id]]["mqttping"] + " | " +  data[ids[id]]["mqttratio"];
+                else
+                    cell3.innerHTML = "-"
+                if(data[ids[id]]["coapping"])
+                    cell4.innerHTML = data[ids[id]]["coapping"] + " | " +  data[ids[id]]["coapratio"];
+                else
+                    cell4.innerHTML = "-"
                 cell5.innerHTML = data[ids[id]]["sampleFrequency"];
 
             }
 
             //update table rows
-        });
+        })
 
     }
-    updateBtn.onclick = updateInterface();
-    setInterval(updateInterface(), updateTime);
-
-
+ 
     </script>
 
 </body>
