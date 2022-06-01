@@ -166,22 +166,18 @@ WiFiUDP coapServer;
 Coap coap(coapServer); //server coap
 //********************************COAP functions******************************************
 void callback_coap_info(CoapPacket &packet, IPAddress ip, int port){
-    Serial.println("Coap request in info");
     coap.sendResponse(ip, port, packet.messageid, buffer_info, strlen(buffer_info), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
 
 void callback_coap_temp_hum(CoapPacket &packet, IPAddress ip, int port){
-    Serial.println("Coap request in temp_hum");
     coap.sendResponse(ip, port, packet.messageid, buffer_temp_hum, strlen(buffer_temp_hum), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
 
 void callback_coap_MQ2(CoapPacket &packet, IPAddress ip, int port){
-    Serial.println("Coap request in MQ2");
     coap.sendResponse(ip, port, packet.messageid, buffer_MQ2, strlen(buffer_MQ2), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
 
 void callback_coap_PPM(CoapPacket &packet, IPAddress ip, int port){
-    Serial.println("Coap request in PPM");
     coap.sendResponse(ip, port, packet.messageid, buffer_PPM, strlen(buffer_PPM), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
 
