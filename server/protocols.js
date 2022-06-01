@@ -189,13 +189,12 @@ function postSensor(req, res){
     params[id].sampleFrequency = data.sampleFrequency;
     params[id].gasMin = data.gasMin;
     params[id].gasMax = data.gasMax;
-    if(params[id].proto != 3)
+    if(params[id].proto != 3){
         params[id].prevProto = params[id].proto;
-    else
+        params[id].proto = data.proto;
+    }else
         params[id].prevProto = data.proto;
     
-    params[id].proto = data.proto;
-
     if(intervals[id]){
         clearInterval(intervals[id]);
         intervals[id] = null;
@@ -232,7 +231,7 @@ function connectSensor(req, res){
         gasMin: 0,
         gasMax: 5000,
         proto: 3, 
-        prevProto: null,
+        prevProto: 1,
         isSet: false 
     }
 
@@ -263,7 +262,14 @@ async function setPingCoap(id, ip){
     params[id]["isSet"] = true;
     if(params[id].prevProto)
         params[id].proto = params[id].prevProto;
+    const data = {
+        sampleFrequency: parseInt(params[id].sampleFrequency),
+        gasMin: parseInt(params[id].minGas),
+        gasMax: parseInt(params[id].maxGas),
+        proto: parseInt(params[id].proto)
+    }
     console.log("Pings done");
+    sendUpdate(data, id);
     
 }
 

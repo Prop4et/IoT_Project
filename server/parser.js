@@ -1,10 +1,10 @@
-//info -> RSS, id, gps
+//info -> RSS, 'id', gps
 //temp_hum -> temperature and humidity
 //MQ2 -> AQI smoke
 //PPM -> smoke, CO, CO2, alcohol, toluen, NH4, aceton
 const influx = require('./influx');
 const influxConfig = require('./influxconfig')
-const influxClient = new influx.InfluxClient(influxConfig.host, influxConfig.port, influxConfig.toke, influxConfig.org);
+const influxClient = new influx.InfluxClient(influxConfig.host, influxConfig.port, influxConfig.token, influxConfig.org);
 const topicMqtt = 'sensor/';
 const subtopics = ['info', 'temp_hum', 'MQ2', 'PPM']
 var params = {}
@@ -12,7 +12,9 @@ var params = {}
 const matchtopic = (element) => element === t;
 const parseInfo = (data) => {
     console.log("\tID: " + data['id'] + " Signal: " +data['RSS'] + "db Coordinates: "+ data['gps'].lat+"°, "+data['gps'].lon+"°");
-    if(!data['id'] in params){
+    var id = data['id'];
+    if(!(id in params)){
+        params[id] = {}
         params[id]["lat"] = data['gps']['lat'];
         params[id]["lon"] = data['gps']['lon'];
     }

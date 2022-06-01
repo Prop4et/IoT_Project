@@ -70,9 +70,12 @@ MQUnifiedsensor MQ2(BOARD, Voltage_Resolution, ADC_Bit_Resolution, PIN_MQ2, Type
 /*char ssid[] = "SbalziOrmonaliA2.4G";
 char pwd[] = "Lovegang126";
 */
-
+/*
 char ssid[] = "POCOF2PRO";
 char pwd[] = "macciocca";
+*/
+char ssid[] = "FASTWEB-42R2XU";
+char pwd[] = "M3A5DM7ETU";
 float RSS = 0;
 int status = WL_IDLE_STATUS;
 
@@ -194,7 +197,7 @@ StaticJsonDocument<JSON_OBJECT_SIZE(256)> data_doc;
 void httpSetup(){
     HTTPClient http;
     Serial.println("Post request");
-    http.begin("http://192.168.24.2:8080/sensor");
+    http.begin("http://192.168.1.68:8080/sensor");
     http.addHeader("Content-Type", "application/json");
     int httpCode = http.POST("{\"id\":\"3030\",\"ip\":\""+WiFi.localIP().toString()+"\"}");
 
@@ -395,7 +398,7 @@ void loop(){
                 float ratiomqtt = sentpingmqtt/nratiomqtt; 
                 HTTPClient http;
                 Serial.println("Post request params");
-                http.begin("http://192.168.24.2:8080/pingMqtt");
+                http.begin("http://192.168.1.68:8080/pingMqtt");
                 http.addHeader("Content-Type", "application/json");
                 char pingVal[6];
                 pingSum = pingSum / (npingsmqtt+1);
@@ -416,8 +419,8 @@ void loop(){
                 protocol = 4;
                 npingsmqtt = 0;
                 received = true;
-                mqttClient.unsubscribe("sensor/ping/3030");
-                mqttClient.unsubscribe("sensor/ping/3030/count");
+                //mqttClient.unsubscribe("sensor/ping/3030");
+                //mqttClient.unsubscribe("sensor/ping/3030/count");
             }
         }
     }

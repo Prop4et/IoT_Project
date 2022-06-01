@@ -1,5 +1,6 @@
 const { InfluxDB } = require('@influxdata/influxdb-client')
 const { Point } = require('@influxdata/influxdb-client')
+//TODO: test influx integration with a stable internet
 class InfluxClient {
     constructor(host, port, token, org) {
         this.client = new InfluxDB({ url: 'http://' + host + ":" + port, token: token })
@@ -7,14 +8,15 @@ class InfluxClient {
         this.port = port
         this.token = token
         this.org = org
+        console.log("Influx connected")
     }
 
     writeDB(id, lat, lon, bucket, data){
         //create a write API
         const writeApi = this.client.getWriteApi(this.org, bucket);
         //give the tag to data (sensor id)
-        writeApi.useDefaultTags({sensor: id, gps: (lat, lon)});
-        const point = new Point('val');
+        writeApi.useDefaultTags({sensor: id, lat: lat, lon: lon});
+        var point = new Point('val');
 
         if(bucket == undefined || bucket == null) return;
 
