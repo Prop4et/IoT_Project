@@ -39,7 +39,6 @@ long pingSum = 0; //total rtt of the ping packets
 long timeSend = 0; //time of sending the ping packet
 bool received = true;//received a ping packet or not
 int npingsmqtt = 0; //number of ping packets received, max 4
-int npingscoap = 0;
 float sentpingmqtt = 0;
 float nratiomqtt = 0;
 int protocol = 3; //1 is MQTT, 2 is COAP, 3 is ping test
@@ -111,14 +110,14 @@ void callback_response_mqtt(char *topic, byte *payload, unsigned int length) {
         if(protocol != 3){
             previousProto = protocol;
             SAMPLE_FREQ = doc["sampleFrequency"];
-            MAX_GAS_VALUE = doc["gasMin"];
-            MIN_GAS_VALUE = doc["gasMax"];
+            MAX_GAS_VALUE = doc["gasMax"];
+            MIN_GAS_VALUE = doc["gasMin"];
             protocol = doc["proto"];
 
         }else {
             SAMPLE_FREQ = doc["sampleFrequency"];
-            MAX_GAS_VALUE = doc["gasMin"];
-            MIN_GAS_VALUE = doc["gasMax"];
+            MAX_GAS_VALUE = doc["gasMax"];
+            MIN_GAS_VALUE = doc["gasMin"];
             int app = doc["proto"];
             if(app != 3)
                 previousProto = app;
@@ -187,11 +186,10 @@ void callback_coap_PPM(CoapPacket &packet, IPAddress ip, int port){
 }
 
 void callback_coap_ping(CoapPacket &packet, IPAddress ip, int port){
-    Serial.println("Coap request in ping");
     char* buf = "ping";
-    npingscoap += 1;
     coap.sendResponse(ip, port, packet.messageid, buf, strlen(buf), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
+
 
 //********************************HTTP vars***********************************************
 const char* connectSensor = "http://192.168.1.133:8080/sensor"; //post
@@ -299,6 +297,7 @@ void setup(){
     coap.server(callback_coap_MQ2, MQ2_topic);
     coap.server(callback_coap_PPM, PPM_topic);
     coap.server(callback_coap_ping, "sensor/ping");
+
     coap.start(5683);
 
 }
@@ -319,7 +318,7 @@ void loop(){
     mqttClient.loop();
     //WiFi stats 
     long mill = millis();
-    if(mill - lastMsg > SAMPLE_FREQ && protocol != 3){
+    if(mill - lastMsg > SAMPLE_FREQ && protocol <3){
         
         RSS = WiFi.RSSI();
         Serial.println("--------- Data -----------");
@@ -399,8 +398,8 @@ void loop(){
             }else{
                 float ratiomqtt = sentpingmqtt/nratiomqtt; 
                 HTTPClient http;
-                Serial.println("Post request");
-                http.begin("http://192.168.1.133:8080/ping");
+                Serial.println("Post request params");
+                http.begin("http://192.168.1.133:8080/pingMqtt");
                 http.addHeader("Content-Type", "application/json");
                 char pingVal[6];
                 pingSum = pingSum / (npingsmqtt+1);
@@ -417,21 +416,17 @@ void loop(){
                     Serial.println(http.errorToString(httpCode).c_str());
                 }
                 http.end();
-                protocol = previousProto;
+                //protocol = previousProto;
+                protocol = 4;
                 npingsmqtt = 0;
-                npingscoap = 0;
                 received = true;
                 mqttClient.unsubscribe("sensor/ping/3030");
                 mqttClient.unsubscribe("sensor/ping/3030/count");
             }
-
-
         }
     }
     
-    
-    
-    if(protocol == 2){
+    if(protocol == 2 || protocol == 4){
         coap.loop();
     }
         

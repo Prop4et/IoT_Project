@@ -11,7 +11,6 @@ const connectUrl = `mqtt://${hostMqtt}:${portMqtt};` // url for connection
 // connection on Mosquitto broker
 
 var client = null;
-
 const topicMqtt = parser.topicMqtt;
 const subtopics = parser.subtopics;
 
@@ -83,7 +82,7 @@ function getSensors(req, res){
 1//-----------------------------------CoAP-------------------------------
 var req0, req1, req2, req3;
 function coapReq(ip, sf){
-    setInterval( () => {
+    var interval = setInterval( () => {
         req0 = coap.request({
             observe: true,
             hostname: ip,
@@ -138,37 +137,7 @@ function coapReq(ip, sf){
         })
         req3.end();
     }, sf);
-}
-
-function coapPing(id, ip){
-    let d = new Date();
-    var tottime = 0;
-    let sendTime = d.getTime();
-        var pingreq = coap.request({
-            observe: false,
-            hostname: ip,
-            pathname: '/sensor/ping',
-            port: 5683,
-            method: 'get',
-            confirmable: 'true',
-            retrySend: 'false'
-        });
-        //req0 = coap.request(ip+'/'+topicMqtt+subtopics[0])
-        pingreq.on('response', (res) => {
-            res.pipe(process.stdout)
-            res.on('end', () => {
-                console.log(sendTime, d.getTime());
-            })
-        })
-
-        pingreq.on('timeout', (res) => {
-            tottime = d.getTime() - sendTime;
-        })
-        pingreq.end();
-
-    /*params[id]["coapratio"] = receivedn/10;
-    params[id]["pingcoap"] = tottime/receivedn;*/
-    
+    return interval;
 }
 
 //------------------------------------HTTP-------------------------------
@@ -222,13 +191,16 @@ function postSensor(req, res){
     params[id].gasMax = data.gasMax;
     params[id].proto = data.proto;
 
-    //clearInterval();
+    if(params[id]["interval"]){
+        clearInterval(params[id]["interval"]);
+        params[id]["interval"] = null;
+    }
     
     sendUpdate(data, id);
     
-    /*if(data.proto == 2)
-        coapReq(params[id].ip, params[id].sampleFrequency)
-    */
+    if(data.proto == 2)
+        params[id]["interval"] = coapReq(params[id].ip, params[id].sampleFrequency)
+    
     
     console.log('..... Update done');
     res.redirect('/');
@@ -254,26 +226,98 @@ function connectSensor(req, res){
         sampleFrequency: 10000,
         gasMin: 0,
         gasMax: 5000,
-        proto: 3 
+        proto: 3, 
+        interval: null, 
+        isSet: false 
     }
 
     res.sendStatus(200);
 
 }
 
-function setPing(req, res){
+function setPingMQTT(req, res){
     const id = req.body.id;
     if(id in params){
-        console.log(req.body);
-        params[id]["mqttping"] = req.body.ping;
+        params[id]["mqttping"] = Math.ceil(req.body.ping);
         params[id]["mqttratio"] = req.body.ratio;
-        console.log(req.body.ratio);
-        params[id]["proto"] = 1;
         res.sendStatus(200);
+        setPingCoap(id, params[id]["ip"]);
+        console.log("DONE");
     }
     else    
         res.status(404).send("Sensor uknown");
+}
 
+const server = coap.createServer()
+
+
+async function setPingCoap(id, ip){
+    const ping = await pingCoap(ip);
+    const ratio = await pktRatioCoap(ip, ping);
+    params[id]["coapping"] = Math.ceil(ping);
+    params[id]["coapratio"] = ratio;
+    params[id]["isSet"] = true;
+}
+
+function pktRatioCoap(ip, ping){
+    let i = 0;
+    let n = 0;
+    var int = setInterval(() => {
+        if(i<10){
+            pingreq = coap.request({
+                observe: false,
+                hostname: ip,
+                pathname: '/sensor/ping',
+                port: 5683,
+                method: 'get',
+                confirmable: 'true',
+                retrySend: 'false'
+            });
+            
+            pingreq.on('response', (res) => {
+                n++;
+            })
+            i++;
+            pingreq.end();
+        }
+    }, ping)
+
+    setTimeout(() => clearInterval(int), ping*10+1000);
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve(n/i);
+        }, 12000);
+      });
+}
+function pingCoap(ip){
+    var i = 0;
+    let tottime = 0;
+    var pingreq;
+    var int = setInterval(() => {
+        let sendTime = Date.now();
+        pingreq = coap.request({
+            observe: false,
+            hostname: ip,
+            pathname: '/sensor/ping',
+            port: 5683,
+            method: 'get',
+            confirmable: 'true',
+            retrySend: 'false'
+        });
+        
+        pingreq.on('response', (res) => {
+            tottime += Date.now() - sendTime;
+        })
+        i++;
+        pingreq.end();
+    }, 1000)
+
+    setTimeout(() => clearInterval(int), 10000);
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve(tottime/i);
+        }, 12000);
+      });
 }
 
 module.exports = {
@@ -282,7 +326,7 @@ module.exports = {
     initializeMQTT,     
     sendUpdate,
     getSensors,
-    setPing
+    setPingMQTT
 }
 
 
