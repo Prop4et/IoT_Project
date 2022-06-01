@@ -496,7 +496,8 @@ select, input{
 
     
     
-    <script>
+    <script defer>
+    window.onload = () => updateInterface();
     const body = document.querySelector('body'),
     sidebar = body.querySelector('nav'),
     toggle = body.querySelector(".toggle"),
@@ -512,23 +513,26 @@ select, input{
 
     const updateBtn = document.getElementById('update-btn');
     const sendBtn = document.getElementById('send-btn');
+    
+
+    const selector = document.getElementById('id');
+    const sensorbody = document.getElementById("sensors-body");
     updateBtn.addEventListener("click", (e) => updateInterface());
-    sendBtn.addEventListener("click", (e) => updateInterface());
-    function updateInterface(){
+    sendBtn.addEventListener("click", (e) => location.reload());
+    const updateInterface = () => {
+        console.log("update");
         $.get("getSensors", function (data) {
-            const selector = document.getElementById('id');
-            const body = document.getElementById("sensors-body");
             var ids = Object.keys(data);
             var childSelector = selector.lastElementChild;
-            var childTable = body.lastElementChild;
+            var childTable = sensorbody.lastElementChild;
             //remove all the children
             while(childSelector){
                 selector.removeChild(childSelector);
                 childSelector = selector.lastElementChild;
             }
             while(childTable){
-                body.removeChild(childTable);
-                childTable = body.lastElementChild;
+                sensorbody.removeChild(childTable);
+                childTable = sensorbody.lastElementChild;
             }
 
             var option = document.createElement("option");
@@ -549,7 +553,7 @@ select, input{
                 option.innerHTML = ids[id];
                 selector.appendChild(option);
                 //update sensors row
-                var row = body.insertRow();
+                var row = sensorbody.insertRow();
                 cell1 = row.insertCell();
                 cell2 = row.insertCell();
                 cell3 = row.insertCell();

@@ -3,6 +3,7 @@ const coap = require('coap')
 const config = require('./config')
 const parser = require('./parser')
 var params = {}
+var intervals = {}
 // ----- MQTT setup -----
 const hostMqtt = config.host; // Broker Mosquitto, should i make mine?
 const portMqtt = config.port; // listen port for MQTT
@@ -81,8 +82,8 @@ function getSensors(req, res){
 
 1//-----------------------------------CoAP-------------------------------
 var req0, req1, req2, req3;
-function coapReq(ip, sf){
-    var interval = setInterval( () => {
+function coapReq(id, ip, sf){
+    intervals[id] = setInterval( () => {
         req0 = coap.request({
             observe: true,
             hostname: ip,
@@ -137,7 +138,6 @@ function coapReq(ip, sf){
         })
         req3.end();
     }, sf);
-    return interval;
 }
 
 //------------------------------------HTTP-------------------------------
@@ -189,18 +189,23 @@ function postSensor(req, res){
     params[id].sampleFrequency = data.sampleFrequency;
     params[id].gasMin = data.gasMin;
     params[id].gasMax = data.gasMax;
+    if(params[id].proto != 3)
+        params[id].prevProto = params[id].proto;
+    else
+        params[id].prevProto = data.proto;
+    
     params[id].proto = data.proto;
 
-    if(params[id]["interval"]){
-        clearInterval(params[id]["interval"]);
-        params[id]["interval"] = null;
+    if(intervals[id]){
+        clearInterval(intervals[id]);
+        intervals[id] = null;
     }
     
-    sendUpdate(data, id);
     
     if(data.proto == 2)
-        params[id]["interval"] = coapReq(params[id].ip, params[id].sampleFrequency)
+        coapReq(id, params[id].ip, params[id].sampleFrequency)
     
+    sendUpdate(data, id);
     
     console.log('..... Update done');
     res.redirect('/');
@@ -227,7 +232,7 @@ function connectSensor(req, res){
         gasMin: 0,
         gasMax: 5000,
         proto: 3, 
-        interval: null, 
+        prevProto: null,
         isSet: false 
     }
 
@@ -242,7 +247,6 @@ function setPingMQTT(req, res){
         params[id]["mqttratio"] = req.body.ratio;
         res.sendStatus(200);
         setPingCoap(id, params[id]["ip"]);
-        console.log("DONE");
     }
     else    
         res.status(404).send("Sensor uknown");
@@ -257,37 +261,48 @@ async function setPingCoap(id, ip){
     params[id]["coapping"] = Math.ceil(ping);
     params[id]["coapratio"] = ratio;
     params[id]["isSet"] = true;
+    if(params[id].prevProto)
+        params[id].proto = params[id].prevProto;
+    console.log("Pings done");
+    
 }
 
 function pktRatioCoap(ip, ping){
     let i = 0;
     let n = 0;
-    var int = setInterval(() => {
-        if(i<10){
-            pingreq = coap.request({
-                observe: false,
-                hostname: ip,
-                pathname: '/sensor/ping',
-                port: 5683,
-                method: 'get',
-                confirmable: 'true',
-                retrySend: 'false'
-            });
-            
-            pingreq.on('response', (res) => {
-                n++;
-            })
-            i++;
-            pingreq.end();
-        }
-    }, ping)
-
-    setTimeout(() => clearInterval(int), ping*10+1000);
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          resolve(n/i);
-        }, 12000);
-      });
+    if(ping != "disconnected"){
+        var int = setInterval(() => {
+            if(i<10){
+                pingreq = coap.request({
+                    observe: false,
+                    hostname: ip,
+                    pathname: '/sensor/ping',
+                    port: 5683,
+                    method: 'get',
+                    confirmable: 'true',
+                    retrySend: 'false'
+                });
+                
+                pingreq.on('response', (res) => {
+                    n++;
+                })
+                i++;
+                pingreq.end();
+            }
+        }, ping)
+    
+        setTimeout(() => clearInterval(int), ping*10+1000);
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+              resolve(n/i);
+            }, 12000);
+          });
+    }else{
+        return new Promise((resolve, reject) => {
+            resolve(0);
+          });
+    }
+   
 }
 function pingCoap(ip){
     var i = 0;
@@ -315,7 +330,10 @@ function pingCoap(ip){
     setTimeout(() => clearInterval(int), 10000);
     return new Promise((resolve, reject) => {
         setTimeout(() => {
-          resolve(tottime/i);
+            if(tottime != 0)
+                resolve(tottime/i);
+            else
+                resolve("disconnected")
         }, 12000);
       });
 }
