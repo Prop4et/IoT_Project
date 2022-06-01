@@ -1,6 +1,5 @@
 const { InfluxDB } = require('@influxdata/influxdb-client')
 const { Point } = require('@influxdata/influxdb-client')
-const config = require('./influxconfig')
 class InfluxClient {
     constructor(host, port, token, org) {
         this.client = new InfluxDB({ url: 'http://' + host + ":" + port, token: token })
@@ -52,24 +51,6 @@ class InfluxClient {
         })
     }
 }
-
-// main()
-function demo(){
-    const token = config.token
-    const org = config.org
-    const host = config.host
-    const port = config.port
-    const buckets = config.buckets
-
-    const clientId = '3030' //dunno if needed, in case i can just save the ids in the db too
-
-    console.log('Starting the influx connection')
-
-    var influxClient = new InfluxClient(host, port, token, org);
-
-}
-
-demo();
 
 module.exports = {
     InfluxClient,
