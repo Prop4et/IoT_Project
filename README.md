@@ -1,11 +1,11 @@
 ## SPECS
-- [ ] Smart device
+- [x] Smart device
     - [x] ESP32
     - [x] DHT22
     - [x] MQ2
     - [x] MQ135
 
-- [ ] Data proxy
+- [x] Data proxy
     - [x] MQTT 
     - [x] CoAP
     - [x] Ping
