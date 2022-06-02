@@ -14,7 +14,7 @@
 - [ ] Data mgmt system
     - [x] InlfuxDB query 
     - [ ] Grafana Dashboard for each data flow
-    - [ ] Grafana alert for AQI >= 1
+    - [x] Grafana alert for AQI >= 1
 - [ ] Data Analytics
 
 ### Additional Components
