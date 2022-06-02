@@ -13,7 +13,7 @@
     - [x] InfluxDB write integration
 - [ ] Data mgmt system
     - [x] InlfuxDB query 
-    - [ ] Grafana Dashboard for each data flow
+    - [x] Grafana Dashboard for each data flow
     - [x] Grafana alert for AQI >= 1
 - [ ] Data Analytics
 
@@ -22,12 +22,12 @@
     - [ ] Store in influx 
     - [ ] Visualization through Grafana
 
-- [ ] Telegram bot
+- [ ] Telegram bot <-- NEXT
 
 - [ ] Web dashboard
     - [ ] Monitor multiple air quality stations at the same time
     - [ ] Register new device
-    - [ ] Config parameters
+    - [x] Config parameters
     - [ ] Visualize position on a map
     - [ ] Access data through grafana
 ## CONTROLLER AND HARDWARE 
