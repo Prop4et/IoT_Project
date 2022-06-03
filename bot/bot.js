@@ -9,18 +9,22 @@ client  = new InfluxDB({ url: 'http://' + influxConfig.host + ":" + influxConfig
 bot = new Telegraf(botConfig.token)
 bot.start((context) => {
     console.log("InfluxDB: Alert Bot started")
-    context.reply("Measures:\n-\
-    /temp <sensor-id>\n-\
-    /hum <sensor-id>\n-\
-    /smoke <sensor-id>\n-\
-    /rss <sensor-id>\n-\
-    /aqi <sensor-id>\n-\
-    /co <sensor-id>\n-\
-    /co2 <sensor-id>\n-\
-    /nh4 <sensor-id>\n-\
-    /al <sensor-id>\n-\
-    /ac <sensor-id>\n-\
-    /to <sensor-id>\n")
+    context.reply("Measures:\n\t-\
+        /temp <sensor-id>\n\t-\
+        /hum <sensor-id>\n\t-\
+        /smoke <sensor-id>\n\t-\
+        /rss <sensor-id>\n\t-\
+        /aqi <sensor-id>\n\t-\
+        /co <sensor-id>\n\t-\
+        /co2 <sensor-id>\n\t-\
+        /nh4 <sensor-id>\n\t-\
+        /al <sensor-id>\n\t-\
+        /ac <sensor-id>\n\t-\
+        /to <sensor-id>\n\
+        Activate periodic updates: \t \/periodic-on <sensor-id>\n\
+        Stop periodic updates: \t \/periodic-off <sensor-id>\n\
+        Activate alerts on AQI: \t \/alert-on <sensor-id>\n\
+        Stop alerts on AQI: \t \/alert-off <sensor-id>")
 })
 
 
@@ -35,7 +39,7 @@ for (const [key, value] of Object.entries(influxConfig.buckets)) {
             let bucket = value
             let query = `
             from(bucket: "${bucket}") 
-            |> range(start: -10m)
+            |> range(start: -1h)
             |> filter(fn: (r) => r._measurement == "val")
             |> filter(fn: (r) => r._field == "value")
             |> filter(fn: (r) => r.sensor == string(v: "${sensorId}"))
