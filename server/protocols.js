@@ -1,7 +1,7 @@
 const mqtt = require('mqtt')
 const coap = require('coap')
 var coapTiming = {
-    ackTimeout: 60
+    ackTimeout: 10
 };
 coap.updateTiming(coapTiming);
 
@@ -230,7 +230,7 @@ function postSensor(req, res){
         data.sampleFrequency = params[id].sampleFrequency;
     }else console.log('HTTP received a new value for the sample frequency ' + data.sampleFrequency);
 
-    if(data.gasMin > data.gasMax){
+    if(data.gasMin >= data.gasMax){
         console.log('HTTP Error: min value for gas is higher than maximum, back to default');
         data.gasMin = params[id].gasMin;
         data.gasMax = params[id].gasMax;
@@ -261,14 +261,18 @@ function postSensor(req, res){
         params[id].prevProto = data.proto;
     
     if(intervals[id]){
-        console.log('clearinterval', intervals[id])
         clearInterval(intervals[id]);
         intervals[id] = null;
     }
     
     
-    if(data.proto == 2)
-        coapReq(id, params[id].ip, params[id].sampleFrequency)
+    if(data.proto == 2){
+        try{
+            coapReq(id, params[id].ip, params[id].sampleFrequency)
+        }catch(e){
+            console.log('coap req error', e);
+        }
+    }
     
     sendUpdate(data, id);
     
@@ -294,12 +298,6 @@ function getNewId(req, res){
 function connectSensor(req, res){
     const id = req.body.id;
     console.log('HTTP connecting a new sensor with id ' + id);
-    if(id in params){
-        //TODO: a disconnected sensor riconnected
-        console.log('a new sensor has connected with the same id of another one: ' + id);
-        res.status(404).send("Sensor with id already connected");
-        return;
-    }
 
     params[id] = {
         ip: req.body.ip,
