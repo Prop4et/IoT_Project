@@ -7,11 +7,11 @@
 
 - [x] Data proxy
     - [x] MQTT 
-    - [x] CoAP
+    - [x] CoAP -> TODO: fix pending requests when changing algorithm
     - [x] Ping
     - [x] Runtime change
     - [x] InfluxDB write integration
-- [ ] Data mgmt system
+- [x] Data mgmt system
     - [x] InlfuxDB query 
     - [x] Grafana Dashboard for each data flow
     - [x] Grafana alert for AQI >= 1
