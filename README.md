@@ -22,11 +22,11 @@
     - [ ] Store in influx 
     - [ ] Visualization through Grafana
 
-- [ ] Telegram bot <-- NEXT
+- [x] Telegram bot
 
 - [ ] Web dashboard
     - [ ] Monitor multiple air quality stations at the same time
-    - [ ] Register new device
+    - [x] Register new device
     - [x] Config parameters
     - [ ] Visualize position on a map
     - [ ] Access data through grafana
