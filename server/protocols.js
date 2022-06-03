@@ -1,7 +1,7 @@
 const mqtt = require('mqtt')
 const coap = require('coap')
 var coapTiming = {
-    ackTimeout: 10
+    ackTimeout: 60
 };
 coap.updateTiming(coapTiming);
 
@@ -87,24 +87,19 @@ function getSensors(req, res){
 
 
 1//-----------------------------------CoAP-------------------------------
-var req0, req1, req2, req3;
 function coapReq(id, ip, sf){
     var lat = params[id].lat;
     var lon = params[id].lon;
     intervals[id] = setInterval( () => {
-        try{
-            req0 = coap.request({
-                observe: true,
-                hostname: ip,
-                pathname: '/'+topicMqtt+subtopics[0],
-                port: 5683,
-                method: 'get',
-                confirmable: 'true',
-                retrySend: 'true'
-            });
-        }catch(e){
-            console.log('try req 0', e);
-        }
+        var req0 = coap.request({
+            observe: true,
+            hostname: ip,
+            pathname: '/'+topicMqtt+subtopics[0],
+            port: 5683,
+            method: 'get',
+            confirmable: 'true',
+            retrySend: 'true'
+        });
 
         req0.on('response', (res) => {
             msg = JSON.parse(res.payload.toString());
@@ -115,89 +110,84 @@ function coapReq(id, ip, sf){
             console.log('req0 timetout', e);
         })
         
+        req0.on('error', (error) => {
+            console.error( error );
+        });
 
         req0.end();
 
-        try{
-            req1 = coap.request({
-                observe: true,
-                hostname: ip,
-                pathname: '/'+topicMqtt+subtopics[1],
-                port: 5683,
-                method: 'get',
-                confirmable: 'true',
-                retrySend: 'true'
-            });
-        }catch(e){
-            console.log('try req1', e);   
-        }
+        var req1 = coap.request({
+            observe: true,
+            hostname: ip,
+            pathname: '/'+topicMqtt+subtopics[1],
+            port: 5683,
+            method: 'get',
+            confirmable: 'true',
+            retrySend: 'true'
+        });
 
         req1.on('response', (res) => {
             msg = JSON.parse(res.payload.toString());
             parser.parse(msg, subtopics[1], lat, lon, 'CoAP');
         })
 
-
         req1.on('timeout', (e) => {
             console.log('req1 timetout', e);
         })
-        
-        req1.on('timeout', (e) => console.log('error in info', e));
+
+        req1.on('error', (error) => {
+            console.error( error );
+        });
 
         req1.end();
 
-        try{
-            req2 = coap.request({
-                observe: true,
-                hostname: ip,
-                pathname: '/'+topicMqtt+subtopics[2],
-                port: 5683,
-                method: 'get',
-                confirmable: 'true',
-                retrySend: 'true'
-            });
-        }catch(e){
-            console.log('try req 2', e);
-        }
+        var req2 = coap.request({
+            observe: true,
+            hostname: ip,
+            pathname: '/'+topicMqtt+subtopics[2],
+            port: 5683,
+            method: 'get',
+            confirmable: 'true',
+            retrySend: 'true'
+        });
         
         req2.on('response', (res) => {
             msg = JSON.parse(res.payload.toString());
             parser.parse(msg, subtopics[2], lat, lon, 'CoAP');
         })
 
-
         req2.on('timeout', (e) => {
             console.log('req2 timetout', e);
         })
-    
-        req2.on('timeout', (e) => console.log('error in info', e));
 
+        req2.on('error', (error) => {
+            console.error( error );
+        });
+    
         req2.end();
-        try{
-            req3  = coap.request({
-                observe: true,
-                hostname: ip,
-                pathname: '/'+topicMqtt+subtopics[3],
-                port: 5683,
-                method: 'get',
-                confirmable: 'true',
-                retrySend: 'false'
-            });
-        }catch(e){
-            console.log('try req 3', e);
-        }
+
+        var req3  = coap.request({
+            observe: true,
+            hostname: ip,
+            pathname: '/'+topicMqtt+subtopics[3],
+            port: 5683,
+            method: 'get',
+            confirmable: 'true',
+            retrySend: 'false'
+        });
 
         req3.on('response', (res) => {
             msg = JSON.parse(res.payload.toString());
             parser.parse(msg, subtopics[3], lat, lon, 'CoAP');
         })
 
-
         req3.on('timeout', (e) => {
             console.log('req3 timetout', e);
         })
-
-        req3.on('timeout', (e) => console.log('error in info', e));
+        
+        req3.on('error', (error) => {
+            console.error( error );
+        });
 
         req3.end();
     }, sf);
@@ -254,25 +244,19 @@ function postSensor(req, res){
     params[id].sampleFrequency = data.sampleFrequency;
     params[id].gasMin = data.gasMin;
     params[id].gasMax = data.gasMax;
-    if(params[id].proto != 3){
+    if(params[id].proto != 3)
         params[id].prevProto = params[id].proto;
-        params[id].proto = data.proto;
-    }else if(data.proto != 3)
+    if(data.proto != 3)
         params[id].prevProto = data.proto;
-    
+    params[id].proto = data.proto;
     if(intervals[id]){
         clearInterval(intervals[id]);
         intervals[id] = null;
     }
     
     
-    if(data.proto == 2){
-        try{
+    if(data.proto == 2)
             coapReq(id, params[id].ip, params[id].sampleFrequency)
-        }catch(e){
-            console.log('coap req error', e);
-        }
-    }
     
     sendUpdate(data, id);
     
@@ -298,23 +282,31 @@ function getNewId(req, res){
 function connectSensor(req, res){
     const id = req.body.id;
     console.log('HTTP connecting a new sensor with id ' + id);
-
-    params[id] = {
-        ip: req.body.ip,
-        lat: req.body.lat, 
-        lon: req.body.lon,
-        mqttping: 'No',
-        coapping: 'No',
-        mqttratio: 1,
-        coapratio: 1,
-        sampleFrequency: 10000,
-        gasMin: 1500,
-        gasMax: 5000,
-        proto: 3, 
-        prevProto: null,
-        isSet: false 
+    if(!(id in params)){
+        params[id] = {
+            ip: req.body.ip,
+            lat: req.body.lat, 
+            lon: req.body.lon,
+            mqttping: 'No',
+            coapping: 'No',
+            mqttratio: 1,
+            coapratio: 1,
+            sampleFrequency: 10000,
+            gasMin: 1500,
+            gasMax: 5000,
+            proto: 3, 
+            prevProto: null,
+            isSet: false 
+        }
+    }else{
+        const data = {
+            sampleFrequency: parseInt(params[id].sampleFrequency),
+            gasMin: parseInt(params[id].minGas),
+            gasMax: parseInt(params[id].maxGas),
+            proto: parseInt(params[id].proto)
+        }
+        sendUpdate(data, id);
     }
-
     res.sendStatus(200);
 
 }
@@ -377,6 +369,7 @@ function pktRatioCoap(ip, ping){
                 pingreq.on('timeout', (res) => {
                     console.log('timeout');
                 })
+
                 i++;
                 pingreq.end();
             }
