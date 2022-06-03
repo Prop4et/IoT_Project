@@ -7,7 +7,7 @@
 
 - [x] Data proxy
     - [x] MQTT 
-    - [x] CoAP -> TODO: fix pending requests when changing algorithm (is it working now?)
+    - [x] CoAP -> TODO: fix pending requests when changing algorithm
     - [x] Ping
     - [x] Runtime change
     - [x] InfluxDB write integration
