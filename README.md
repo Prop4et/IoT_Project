@@ -1,20 +1,20 @@
 ## SPECS
-- [ ] Smart device
+- [x] Smart device
     - [x] ESP32
     - [x] DHT22
     - [x] MQ2
     - [x] MQ135
 
-- [ ] Data proxy
+- [x] Data proxy
     - [x] MQTT 
     - [x] CoAP
     - [x] Ping
     - [x] Runtime change
     - [x] InfluxDB write integration
 - [ ] Data mgmt system
-    - [ ] InlfuxDB query 
-    - [ ] Grafana Dashboard for each data flow
-    - [ ] Grafana alert for AQI >= 1
+    - [x] InlfuxDB query 
+    - [x] Grafana Dashboard for each data flow
+    - [x] Grafana alert for AQI >= 1
 - [ ] Data Analytics
 
 ### Additional Components
@@ -22,12 +22,12 @@
     - [ ] Store in influx 
     - [ ] Visualization through Grafana
 
-- [ ] Telegram bot
+- [ ] Telegram bot <-- NEXT
 
 - [ ] Web dashboard
     - [ ] Monitor multiple air quality stations at the same time
     - [ ] Register new device
-    - [ ] Config parameters
+    - [x] Config parameters
     - [ ] Visualize position on a map
     - [ ] Access data through grafana
 ## CONTROLLER AND HARDWARE 
