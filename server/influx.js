@@ -15,7 +15,7 @@ class InfluxClient {
         //create a write API
         const writeApi = this.client.getWriteApi(this.org, bucket);
         //give the tag to data (sensor id)
-        writeApi.useDefaultTags({sensor: id, lat: lat, lon: lon});
+        writeApi.useDefaultTags({sensor: id.toString(), lat: lat, lon: lon});
         var point = new Point('val');
 
         if(bucket == undefined || bucket == null) return;
@@ -29,7 +29,7 @@ class InfluxClient {
         writeApi
             .close()
             .then(() => {
-                console.log('...Influx wrote for sensor: ' + id + ': ' + bucket +'<-'+data);
+                console.log('...Influx wrote for sensor ' + id + ': ' + bucket +'<-'+data);
             })
             .catch(e => {
                 console.log('Influx Error in writing',e);

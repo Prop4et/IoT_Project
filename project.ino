@@ -8,7 +8,6 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
-#include <Thing.CoAP.h>
 
 //*********************************DHT HW PARAMS ***************************************
 #define DHTPIN 4
@@ -29,7 +28,7 @@
 #define         WINDOW                  (5)
 
 //*********************************SETTINGS**********************************************
-const char *id = "3030";
+int id_int;
 const float lat = 44.501;
 const float lon = 11.350;
 int SAMPLE_FREQ = 10000;
@@ -47,7 +46,7 @@ int AQI = 2; //0 if avg > MAX_GAS_VALUE, 1 if MIN_GAS_VALUE < avg < MAX_GAS_VALU
 int n_sample = 0;
 int shifting_index = 0;
 float array_avg[WINDOW] = {-1, -1, -1, -1, -1};//-1 is not a valid argument for the voltage 
-const int doc_info_capacity = JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(2);
+const int doc_info_capacity = JSON_OBJECT_SIZE(2);
 const int doc_temp_hum_capacity = JSON_OBJECT_SIZE(3);
 const int doc_MQ2_capacity = JSON_OBJECT_SIZE(4);
 const int doc_PPM_capacity = JSON_OBJECT_SIZE(7);
@@ -59,6 +58,20 @@ char buffer_info[sizeof(info_doc)];
 char buffer_temp_hum[sizeof(temp_hum_doc)];
 char buffer_MQ2[sizeof(MQ2_doc)]; 
 char buffer_PPM[sizeof(PPM_doc)];
+
+//*parameters
+float RSS = 0.0;
+float t = -300;
+float h = -1;
+float smoke = 0.0;
+float avg = 0.0;
+float CO = 0.0;
+float CO2 = 400;
+float alcohol = 0.0;
+float toluen = 0.0;
+float NH4 = 0.0;
+float aceton = 0.0;
+
 //*********************************SENSORS***********************************************
 //dht sensor define 
 DHT dht(DHTPIN, DHTTYPE);
@@ -76,7 +89,6 @@ char pwd[] = "macciocca";
 */
 char ssid[] = "FASTWEB-42R2XU";
 char pwd[] = "M3A5DM7ETU";
-float RSS = 0;
 int status = WL_IDLE_STATUS;
 
 //*********************************MQTT Broker********************************************
@@ -89,12 +101,16 @@ const char *topic = "sensor/";
 //info -> RSS, id, gps
 //MQ2 -> AQI, smoke, avg
 //PPM -> smoke, CO, CO2, alcohol, toluen, NH4, aceton
-//add 3030
 const char *info_topic = "sensor/info";
 const char *temp_hum_topic = "sensor/temp_hum";
 const char *MQ2_topic = "sensor/MQ2";
 const char *PPM_topic = "sensor/PPM";
-const char *topic_update = "sensor/update/3030";
+char topic_update[20] = "sensor/update/";
+char ping_topic[20] = "sensor/ping";
+char ping_topic_count[30];            
+
+
+
 //**********************************MQTT vars**********************************************
 WiFiClient client;
 PubSubClient mqttClient(client); //mqttClient for the mqtt publish subscribe
@@ -131,12 +147,12 @@ void callback_response_mqtt(char *topic, byte *payload, unsigned int length) {
         Serial.print("SF: "); Serial.print(SAMPLE_FREQ); Serial.print("\t maxGas: "); Serial.print(MAX_GAS_VALUE); Serial.print("\t minGas:"); Serial.print(MIN_GAS_VALUE); Serial.print("\tprotocol: "); Serial.println(protocol);
         Serial.println("-----------------------");
     }
-    if(!strcmp(topic, "sensor/ping/3030")){
+    if(!strcmp(topic, ping_topic)){
         pingSum += millis() - timeSend;
         received = !received;
         npingsmqtt++;
     }
-    if(!strcmp(topic, "sensor/ping/3030/count")){
+    if(!strcmp(topic, ping_topic_count)){
         sentpingmqtt++;
     }
 }
@@ -150,8 +166,8 @@ void mqtt_connect(){
         Serial.printf("Trying to connect to the mqtt broker ... ");
         if (mqttClient.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
             mqttClient.subscribe(topic_update);
-            mqttClient.subscribe("sensor/ping/3030");
-            mqttClient.subscribe("sensor/ping/3030/count");
+            mqttClient.subscribe(ping_topic);
+            mqttClient.subscribe(ping_topic_count);
             Serial.println("Connected");
         }else{
             // connection error handler
@@ -170,18 +186,26 @@ WiFiUDP coapServer;
 Coap coap(coapServer); //server coap
 //********************************COAP functions******************************************
 void callback_coap_info(CoapPacket &packet, IPAddress ip, int port){
+    info_doc["id"] = id_int;    info_doc["RSS"] = RSS;   //json for the info topic
+    serializeJson(info_doc, buffer_info);
     coap.sendResponse(ip, port, packet.messageid, buffer_info, strlen(buffer_info), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
 
 void callback_coap_temp_hum(CoapPacket &packet, IPAddress ip, int port){
+    temp_hum_doc["id"] = id_int;   temp_hum_doc["temperature"] = t;    temp_hum_doc["humidity"] = h;  //json for the temperature humidity topic 
+    serializeJson(temp_hum_doc, buffer_temp_hum);
     coap.sendResponse(ip, port, packet.messageid, buffer_temp_hum, strlen(buffer_temp_hum), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
 
 void callback_coap_MQ2(CoapPacket &packet, IPAddress ip, int port){
+    MQ2_doc["id"] = id_int; MQ2_doc["smoke"] = smoke;   MQ2_doc["AQI"] = AQI; MQ2_doc["avg"] = avg;    //json for the MQ2 sensor
+    serializeJson(MQ2_doc, buffer_MQ2);
     coap.sendResponse(ip, port, packet.messageid, buffer_MQ2, strlen(buffer_MQ2), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
 
 void callback_coap_PPM(CoapPacket &packet, IPAddress ip, int port){
+    PPM_doc["id"] = id_int; PPM_doc["CO"] = CO;   PPM_doc["CO2"] = CO2;    PPM_doc["al"] = alcohol;   PPM_doc["to"] = toluen;    PPM_doc["NH4"] = NH4;    PPM_doc["ac"] = aceton; //PPM json    
+    serializeJson(PPM_doc, buffer_PPM);
     coap.sendResponse(ip, port, packet.messageid, buffer_PPM, strlen(buffer_PPM), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
 }
 
@@ -193,7 +217,7 @@ void callback_coap_ping(CoapPacket &packet, IPAddress ip, int port){
 
 //********************************HTTP vars***********************************************
 StaticJsonDocument<JSON_OBJECT_SIZE(256)> data_doc;
-
+/*
 void httpSetup(){
     HTTPClient http;
     Serial.println("Post request");
@@ -211,7 +235,61 @@ void httpSetup(){
         Serial.println(http.errorToString(httpCode).c_str());
     }
     http.end();
+}*/
+
+void httpSetup(){
+    //get ID
+    HTTPClient http;
+    String mac = WiFi.macAddress();
+    Serial.println("GET request");
+    http.begin("http://192.168.1.68:8080/sensor?mac="+mac);// Send HTTP GET request
+    int httpResponseCode = http.GET();
+    if (httpResponseCode>0) {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+
+        DynamicJsonDocument doc_id(2048);
+        DeserializationError error = deserializeJson(doc_id, http.getStream());
+        if(error){
+            Serial.print("Deserialization error: ");
+            Serial.println(error.f_str());
+            ESP.restart();
+        }
+        else
+            id_int = doc_id["id"].as<int>();
+            char id[33];
+            itoa(id_int, id, 33);
+            Serial.println(id);
+            strcat(ping_topic, id);
+            strcat(ping_topic_count, "/count");
+            strcat(topic_update, id);
+      }
+      else {
+        Serial.print("Error code: ");
+        Serial.println(httpResponseCode);
+      }
+      // Free resources
+      http.end();
+
+    //after obtaining an id notify the server with the ip for the coap Connection
+    //i could send lat and lon here too
+    Serial.println("Post request");
+    http.begin("http://192.168.1.68:8080/sensor");
+    http.addHeader("Content-Type", "application/json");
+    int httpCode = http.POST("{\"id\":\""+String(id_int)+"\",\"ip\":\""+WiFi.localIP().toString()+"\",\"lat\":\""+String(lat)+"\",\"lon\":\""+String(lon)+"\"}");
+
+    // httpCode will be negative on error
+    if(httpCode > 0) {
+        // HTTP header has been send and Server response header has been handled
+        Serial.print("[HTTP] POST... code: ");
+        Serial.println(httpCode);
+    } else {
+        Serial.print("[HTTP] POST... failed, error: ");
+        Serial.println(http.errorToString(httpCode).c_str());
+    }
+    http.end();
 }
+
 //********************************UTILITY functions***************************************
 float average(float *arr, int len){
     float sum = 0;  
@@ -221,22 +299,7 @@ float average(float *arr, int len){
 }
 
 int computeAQI(float avg){
-    return avg >= MAX_GAS_VALUE ? 0 : (avg < MIN_GAS_VALUE ? 2 : 1);
-}
-
-//serialization
-void serializeData(float RSS, float t, float h, float smoke, float avg, float CO, float CO2, float alcohol, float toluen, float NH4, float aceton){
-    //print
-    info_doc["id"] = id;    info_doc["RSS"] = RSS;    info_doc["gps"]["lat"] = lat;    info_doc["gps"]["lon"] = lon;  //json for the info topic
-    temp_hum_doc["id"] = id;   temp_hum_doc["temperature"] = t;    temp_hum_doc["humidity"] = h;  //json for the temperature humidity topic 
-    MQ2_doc["id"] = id; MQ2_doc["smoke"] = smoke;   MQ2_doc["AQI"] = AQI; MQ2_doc["avg"] = avg;    //json for the MQ2 sensor
-    PPM_doc["id"] = id; PPM_doc["CO"] = CO;   PPM_doc["CO2"] = CO2;    PPM_doc["al"] = alcohol;   PPM_doc["to"] = toluen;    PPM_doc["NH4"] = NH4;    PPM_doc["ac"] = aceton; //PPM json    
-    //send it 
-    serializeJson(info_doc, buffer_info);
-    serializeJson(temp_hum_doc, buffer_temp_hum);
-    serializeJson(MQ2_doc, buffer_MQ2);
-    serializeJson(PPM_doc, buffer_PPM);
-    
+    return avg >= MAX_GAS_VALUE ? 2 : (avg < MIN_GAS_VALUE ? 0 : 1);
 }
 
 void setup(){
@@ -283,10 +346,7 @@ void setup(){
 	Serial.print("\nConnected with ip: ");
 	Serial.println(WiFi.localIP());
     delay(250);
-    StaticJsonDocument<JSON_OBJECT_SIZE(2)> post_id;
-    post_id["id"] = 3030;
-    char buffer_id[sizeof(post_id)];
-    serializeJson(post_id, buffer_id);
+
     int err = 0;
     httpSetup();  
     delay(250);
@@ -308,7 +368,7 @@ void loop(){
     if(WiFi.status() != WL_CONNECTED){
         WiFi.reconnect();
         while (WiFi.status() != WL_CONNECTED) {
-            delay(500);
+            delay(5000);
             Serial.print(".");
         }
     }
@@ -323,8 +383,8 @@ void loop(){
         Serial.println("--------- Data -----------");
         Serial.print("WiFi RSS Strength: ");
         Serial.println(RSS);
-        float t = dht.readTemperature();
-        float h = dht.readHumidity();
+        t = dht.readTemperature();
+        h = dht.readHumidity();
         // Check if any reads failed and exit early (to try again).
         if (isnan(t) || isnan(h)) {    
             Serial.println("Failed to read from DHT sensor!");
@@ -336,27 +396,27 @@ void loop(){
         float smokeV = MQ2.getVoltage();//get the voltage of the smoke
         array_avg[shifting_index] = smokeV;//add the voltage to the average
 
-        float smoke = MQ2.readSensor();//get the PPM of the smoke*/
+        smoke = MQ2.readSensor();//get the PPM of the smoke*/
 
         MQ135.update(); // Update data
 
         MQ135.setA(605.18); MQ135.setB(-3.937); // Configure the equation to calculate CO concentration value
-        float CO = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+        CO = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
         MQ135.setA(77.255); MQ135.setB(-3.18); //Configure the equation to calculate Alcohol concentration value
-        float alcohol = MQ135.readSensor(); // SSensor will read PPM concentration using the model, a and b values set previously or from the setup
+        alcohol = MQ135.readSensor(); // SSensor will read PPM concentration using the model, a and b values set previously or from the setup
 
         MQ135.setA(110.47); MQ135.setB(-2.862); // Configure the equation to calculate CO2 concentration value
-        float CO2 = MQ135.readSensor()+400; // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+        CO2 = MQ135.readSensor()+400; // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
         MQ135.setA(44.947); MQ135.setB(-3.445); // Configure the equation to calculate Toluen concentration value
-        float toluen = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+        toluen = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
         MQ135.setA(102.2 ); MQ135.setB(-2.473); // Configure the equation to calculate NH4 concentration value
-        float NH4 = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+        NH4 = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
         MQ135.setA(34.668); MQ135.setB(-3.369); // Configure the equation to calculate Aceton concentration value
-        float aceton = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
+        aceton = MQ135.readSensor(); // Sensor will read PPM concentration using the model, a and b values set previously or from the setup
 
         shifting_index += 1;
         shifting_index %= WINDOW;
@@ -365,17 +425,25 @@ void loop(){
             n_sample += 1;
 
         //compute AQI
-        float avg = average(array_avg, n_sample);       
+        avg = average(array_avg, n_sample);       
         AQI = computeAQI(avg);
 
         //serialize as json
-        serializeData(RSS, t, h, smoke, avg, CO, CO2, alcohol, toluen, NH4, aceton);
         lastMsg = mill;
         if(protocol == 1){
             Serial.println("MQTT Publish");
+            //send it 
+            info_doc["id"] = id_int;    info_doc["RSS"] = RSS;    //json for the info topic
+            serializeJson(info_doc, buffer_info);
             mqttClient.publish(info_topic, buffer_info, 0);
+            temp_hum_doc["id"] = id_int;   temp_hum_doc["temperature"] = t;    temp_hum_doc["humidity"] = h;  //json for the temperature humidity topic 
+            serializeJson(temp_hum_doc, buffer_temp_hum);
             mqttClient.publish(temp_hum_topic, buffer_temp_hum, 0);
+            MQ2_doc["id"] = id_int; MQ2_doc["smoke"] = smoke;   MQ2_doc["AQI"] = AQI; MQ2_doc["avg"] = avg;    //json for the MQ2 sensor
+            serializeJson(MQ2_doc, buffer_MQ2);
             mqttClient.publish(MQ2_topic, buffer_MQ2, 0);
+            PPM_doc["id"] = id_int; PPM_doc["CO"] = CO;   PPM_doc["CO2"] = CO2;    PPM_doc["al"] = alcohol;   PPM_doc["to"] = toluen;    PPM_doc["NH4"] = NH4;    PPM_doc["ac"] = aceton; //PPM json    
+            serializeJson(PPM_doc, buffer_PPM);
             mqttClient.publish(PPM_topic, buffer_PPM, 0);
         }else if(protocol == 2){
             Serial.println("CoAP loop");
@@ -383,15 +451,15 @@ void loop(){
             protocol = previousProto;
         }
     }
-
     if(protocol == 3){
         if(received && npingsmqtt< 10){
             received = !received;
             timeSend = millis();
-            mqttClient.publish("sensor/ping/3030", "ping");
+            
+            mqttClient.publish(ping_topic, "ping");
         }else if(npingsmqtt >= 10){
             if(nratiomqtt < 20){
-                mqttClient.publish("sensor/ping/3030/count", "ping");
+                mqttClient.publish(ping_topic_count, "ping");
                 delay(pingSum / (npingsmqtt+1));
                 nratiomqtt++;
             }else{
@@ -403,7 +471,7 @@ void loop(){
                 char pingVal[6];
                 pingSum = pingSum / (npingsmqtt+1);
                 snprintf((char *) pingVal, 6, "%ld", pingSum);
-                int httpCode = http.POST("{\"id\":\"3030\", \"ping\":\""+ String(pingVal)+"\", \"ratio\":\""+ String(ratiomqtt)+"\"}");
+                int httpCode = http.POST("{\"id\":\""+String(id_int)+"\", \"ping\":\""+ String(pingVal)+"\", \"ratio\":\""+ String(ratiomqtt)+"\"}");
 
                 // httpCode will be negative on error
                 if(httpCode > 0) {
@@ -419,8 +487,6 @@ void loop(){
                 protocol = 4;
                 npingsmqtt = 0;
                 received = true;
-                //mqttClient.unsubscribe("sensor/ping/3030");
-                //mqttClient.unsubscribe("sensor/ping/3030/count");
             }
         }
     }

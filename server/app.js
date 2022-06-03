@@ -44,6 +44,7 @@ the dashboard updates them
 app.get('/sensor', http.getSensor);
 */
 app.post('/sensor', protocols.connectSensor);
+app.get('/sensor', protocols.getNewId);
 app.post('/pingMqtt', protocols.setPingMQTT);
 
 

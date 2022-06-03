@@ -1,5 +1,10 @@
 const mqtt = require('mqtt')
 const coap = require('coap')
+var coapTiming = {
+    ackTimeout: 60
+};
+coap.updateTiming(coapTiming);
+
 const config = require('./config')
 const parser = require('./parser')
 var params = {}
@@ -48,7 +53,8 @@ function initializeMQTT() {
         if(!topic_exists){
             return;
         }
-        parser.parse(payload, sarr[sarr.length - 1], 'MQTT');
+        var msg = JSON.parse(payload.toString());
+        parser.parse(msg, sarr[sarr.length - 1], params[msg['id']].lat, params[msg['id']].lon, 'MQTT');
 
     });
 }
@@ -83,59 +89,116 @@ function getSensors(req, res){
 1//-----------------------------------CoAP-------------------------------
 var req0, req1, req2, req3;
 function coapReq(id, ip, sf){
+    var lat = params[id].lat;
+    var lon = params[id].lon;
     intervals[id] = setInterval( () => {
-        req0 = coap.request({
-            observe: true,
-            hostname: ip,
-            pathname: '/'+topicMqtt+subtopics[0],
-            port: 5683,
-            method: 'get',
-            confirmable: 'true',
-            retrySend: 'true'
-        });
-        //req0 = coap.request(ip+'/'+topicMqtt+subtopics[0])
+        try{
+            req0 = coap.request({
+                observe: true,
+                hostname: ip,
+                pathname: '/'+topicMqtt+subtopics[0],
+                port: 5683,
+                method: 'get',
+                confirmable: 'true',
+                retrySend: 'true'
+            });
+        }catch(e){
+            console.log('try req 0', e);
+        }
+
         req0.on('response', (res) => {
-            parser.parse(res.payload, subtopics[0], 'CoAP');
+            msg = JSON.parse(res.payload.toString());
+            parser.parse(msg, subtopics[0], lat, lon, 'CoAP');
         })
+
+        req0.on('timeout', (e) => {
+            console.log('req0 timetout', e);
+        })
+        
+
         req0.end();
-        req1 = coap.request({
-            observe: true,
-            hostname: ip,
-            pathname: '/'+topicMqtt+subtopics[1],
-            port: 5683,
-            method: 'get',
-            confirmable: 'true',
-            retrySend: 'true'
-        });
+
+        try{
+            req1 = coap.request({
+                observe: true,
+                hostname: ip,
+                pathname: '/'+topicMqtt+subtopics[1],
+                port: 5683,
+                method: 'get',
+                confirmable: 'true',
+                retrySend: 'true'
+            });
+        }catch(e){
+            console.log('try req1', e);   
+        }
+
         req1.on('response', (res) => {
-            parser.parse(res.payload, subtopics[1], 'CoAP');
+            msg = JSON.parse(res.payload.toString());
+            parser.parse(msg, subtopics[1], lat, lon, 'CoAP');
         })
+
+
+        req1.on('timeout', (e) => {
+            console.log('req1 timetout', e);
+        })
+        
+        req1.on('timeout', (e) => console.log('error in info', e));
+
         req1.end();
-        req2 = coap.request({
-            observe: true,
-            hostname: ip,
-            pathname: '/'+topicMqtt+subtopics[2],
-            port: 5683,
-            method: 'get',
-            confirmable: 'true',
-            retrySend: 'true'
-        });
+
+        try{
+            req2 = coap.request({
+                observe: true,
+                hostname: ip,
+                pathname: '/'+topicMqtt+subtopics[2],
+                port: 5683,
+                method: 'get',
+                confirmable: 'true',
+                retrySend: 'true'
+            });
+        }catch(e){
+            console.log('try req 2', e);
+        }
+        
         req2.on('response', (res) => {
-            parser.parse(res.payload, subtopics[2], 'CoAP');
+            msg = JSON.parse(res.payload.toString());
+            parser.parse(msg, subtopics[2], lat, lon, 'CoAP');
         })
+
+
+        req2.on('timeout', (e) => {
+            console.log('req2 timetout', e);
+        })
+    
+        req2.on('timeout', (e) => console.log('error in info', e));
+
         req2.end();
-        req3  = coap.request({
-            observe: true,
-            hostname: ip,
-            pathname: '/'+topicMqtt+subtopics[3],
-            port: 5683,
-            method: 'get',
-            confirmable: 'true',
-            retrySend: 'true'
-        });
+        try{
+            req3  = coap.request({
+                observe: true,
+                hostname: ip,
+                pathname: '/'+topicMqtt+subtopics[3],
+                port: 5683,
+                method: 'get',
+                confirmable: 'true',
+                retrySend: 'false'
+            });
+        }catch(e){
+            console.log('try req 3', e);
+        }
+
         req3.on('response', (res) => {
-            parser.parse(res.payload, subtopics[3], 'CoAP');
+            msg = JSON.parse(res.payload.toString());
+            parser.parse(msg, subtopics[3], lat, lon, 'CoAP');
         })
+
+
+        req3.on('timeout', (e) => {
+            console.log('req3 timetout', e);
+        })
+
+        req3.on('timeout', (e) => console.log('error in info', e));
+
         req3.end();
     }, sf);
 }
@@ -143,6 +206,8 @@ function coapReq(id, ip, sf){
 //------------------------------------HTTP-------------------------------
 //resources value
 //nothing is sanitized and types aren't checked
+
+
 function postSensor(req, res){
     console.log('HTTP: Update ...')
     const id = req.body.id;
@@ -192,10 +257,11 @@ function postSensor(req, res){
     if(params[id].proto != 3){
         params[id].prevProto = params[id].proto;
         params[id].proto = data.proto;
-    }else
+    }else if(data.proto != 3)
         params[id].prevProto = data.proto;
     
     if(intervals[id]){
+        console.log('clearinterval', intervals[id])
         clearInterval(intervals[id]);
         intervals[id] = null;
     }
@@ -211,11 +277,25 @@ function postSensor(req, res){
 
 }
 
+ids = {}
+
+function getNewId(req, res){
+    var query = JSON.parse(JSON.stringify(req.query));
+    if(query.mac in ids)
+        res.json({"id": ids[query.mac]})
+    else{
+        var id = Object.keys(ids).length
+        ids[query.mac] = id;
+        res.json({"id": id});
+    }
+}
+
 //on a new sensor i can notify if that id already exists
 function connectSensor(req, res){
     const id = req.body.id;
     console.log('HTTP connecting a new sensor with id ' + id);
     if(id in params){
+        //TODO: a disconnected sensor riconnected
         console.log('a new sensor has connected with the same id of another one: ' + id);
         res.status(404).send("Sensor with id already connected");
         return;
@@ -223,15 +303,17 @@ function connectSensor(req, res){
 
     params[id] = {
         ip: req.body.ip,
+        lat: req.body.lat, 
+        lon: req.body.lon,
         mqttping: 'No',
         coapping: 'No',
         mqttratio: 1,
         coapratio: 1,
         sampleFrequency: 10000,
-        gasMin: 0,
+        gasMin: 1500,
         gasMax: 5000,
         proto: 3, 
-        prevProto: 1,
+        prevProto: null,
         isSet: false 
     }
 
@@ -262,14 +344,15 @@ async function setPingCoap(id, ip){
     params[id]["isSet"] = true;
     if(params[id].prevProto)
         params[id].proto = params[id].prevProto;
-    const data = {
+    /*const data = {
         sampleFrequency: parseInt(params[id].sampleFrequency),
         gasMin: parseInt(params[id].minGas),
         gasMax: parseInt(params[id].maxGas),
         proto: parseInt(params[id].proto)
-    }
+    }*/
     console.log("Pings done");
-    sendUpdate(data, id);
+    //THIS ONLY IF AUTOMATED STARTUP
+    //sendUpdate(data, id);
     
 }
 
@@ -291,6 +374,10 @@ function pktRatioCoap(ip, ping){
                 
                 pingreq.on('response', (res) => {
                     n++;
+                })
+
+                pingreq.on('timeout', (res) => {
+                    console.log('timeout');
                 })
                 i++;
                 pingreq.end();
@@ -350,7 +437,8 @@ module.exports = {
     initializeMQTT,     
     sendUpdate,
     getSensors,
-    setPingMQTT
+    setPingMQTT, 
+    getNewId
 }
 
 
