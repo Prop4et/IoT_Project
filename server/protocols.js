@@ -111,7 +111,7 @@ function coapReq(id, ip, sf){
         })
         
         req0.on('error', (error) => {
-            console.error( error );
+            req0.destroy();
         });
 
         req0.end();
@@ -136,7 +136,7 @@ function coapReq(id, ip, sf){
         })
 
         req1.on('error', (error) => {
-            console.error( error );
+            req1.destroy();
         });
 
         req1.end();
@@ -161,7 +161,7 @@ function coapReq(id, ip, sf){
         })
 
         req2.on('error', (error) => {
-            console.error( error );
+            req2.destroy();
         });
     
         req2.end();
@@ -182,7 +182,7 @@ function coapReq(id, ip, sf){
         })
 
         req3.on('timeout', (e) => {
-            console.log('req3 timetout', e);
+            req3.destroy();
         })
         
         req3.on('error', (error) => {
