@@ -80,15 +80,15 @@ MQUnifiedsensor MQ135(BOARD, Voltage_Resolution, ADC_Bit_Resolution, PIN_MQ135, 
 MQUnifiedsensor MQ2(BOARD, Voltage_Resolution, ADC_Bit_Resolution, PIN_MQ2, Type2);
 
 //*********************************WiFi***************************************************
-/*char ssid[] = "SbalziOrmonaliA2.4G";
+char ssid[] = "SbalziOrmonaliA2.4G";
 char pwd[] = "Lovegang126";
-*/
+
 /*
 char ssid[] = "POCOF2PRO";
 char pwd[] = "macciocca";
-*/
+
 char ssid[] = "FASTWEB-42R2XU";
-char pwd[] = "M3A5DM7ETU";
+char pwd[] = "M3A5DM7ETU";*/
 int status = WL_IDLE_STATUS;
 
 //*********************************MQTT Broker********************************************
@@ -242,7 +242,7 @@ void httpSetup(){
     HTTPClient http;
     String mac = WiFi.macAddress();
     Serial.println("GET request");
-    http.begin("http://192.168.1.68:8080/sensor?mac="+mac);// Send HTTP GET request
+    http.begin("http://192.168.1.133:8080/sensor?mac="+mac);// Send HTTP GET request
     int httpResponseCode = http.GET();
     if (httpResponseCode>0) {
         Serial.print("HTTP Response code: ");
@@ -274,7 +274,7 @@ void httpSetup(){
     //after obtaining an id notify the server with the ip for the coap Connection
     //i could send lat and lon here too
     Serial.println("Post request");
-    http.begin("http://192.168.1.68:8080/sensor");
+    http.begin("http://192.168.1.133:8080/sensor");
     http.addHeader("Content-Type", "application/json");
     int httpCode = http.POST("{\"id\":\""+String(id_int)+"\",\"ip\":\""+WiFi.localIP().toString()+"\",\"lat\":\""+String(lat)+"\",\"lon\":\""+String(lon)+"\"}");
 
@@ -466,7 +466,7 @@ void loop(){
                 float ratiomqtt = sentpingmqtt/nratiomqtt; 
                 HTTPClient http;
                 Serial.println("Post request params");
-                http.begin("http://192.168.1.68:8080/pingMqtt");
+                http.begin("http://192.168.1.133:8080/pingMqtt");
                 http.addHeader("Content-Type", "application/json");
                 char pingVal[6];
                 pingSum = pingSum / (npingsmqtt+1);
