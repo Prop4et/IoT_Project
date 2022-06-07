@@ -30,6 +30,13 @@ query_smoke = 'from(bucket:"smoke")' \
         ' |> range(start:-6h)'\
         ' |> filter(fn: (r) => r._measurement == "val" and r._field == "value")'
 
+result_temp = query_api.query_data_frame(query_temp)
+
+    # show the post with the given id, the id is an integer
+#return f'Forcasted for {predLen} timestamps'
+#@app.route("/")
+#def index():
+# return render_template('index.html')
 
 if __name__ == '__main__':
     app.run()
