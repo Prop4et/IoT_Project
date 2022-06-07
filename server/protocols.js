@@ -9,6 +9,7 @@ const config = require('./config')
 const parser = require('./parser')
 var params = {}
 var intervals = {}
+var aliveInterval = {}
 // ----- MQTT setup -----
 const hostMqtt = config.host; // Broker Mosquitto, should i make mine?
 const portMqtt = config.port; // listen port for MQTT
@@ -86,7 +87,7 @@ function getSensors(req, res){
 
 
 
-1//-----------------------------------CoAP-------------------------------
+//-----------------------------------CoAP-------------------------------
 function coapReq(id, ip, sf){
     var lat = params[id].lat;
     var lon = params[id].lon;
@@ -193,6 +194,30 @@ function coapReq(id, ip, sf){
     }, sf);
 }
 
+
+function isAlive(id){
+    if(!(id in aliveInterval)){
+        aliveInterval[id] = setInterval(() => {
+            var req = coap.request({
+                observe: true,
+                hostname: ip,
+                pathname: '/sensor/keepalive',
+                port: 5683,
+                method: 'get',
+                confirmable: 'true',
+                retrySend: 'true'
+            });
+    
+            req.on('response', (res) => {
+                
+            })
+    
+            req.on('error', (e) => {
+                console.log('sensor disconnected', e);
+            })
+        }, 60000);
+    }
+}
 //------------------------------------HTTP-------------------------------
 //resources value
 //nothing is sanitized and types aren't checked
@@ -246,6 +271,8 @@ function postSensor(req, res){
     params[id].gasMax = data.gasMax;
     if(params[id].proto != 3)
         params[id].prevProto = params[id].proto;
+    else
+        isAlive(id)
     if(data.proto != 3)
         params[id].prevProto = data.proto;
     params[id].proto = data.proto;
@@ -278,7 +305,6 @@ function getNewId(req, res){
     }
 }
 
-//on a new sensor i can notify if that id already exists
 function connectSensor(req, res){
     const id = req.body.id;
     console.log('HTTP connecting a new sensor with id ' + id);
@@ -305,7 +331,9 @@ function connectSensor(req, res){
             gasMax: parseInt(params[id].maxGas),
             proto: parseInt(params[id].proto)
         }
+        isAlive(id)
         sendUpdate(data, id);
+
     }
     res.sendStatus(200);
 
@@ -364,13 +392,17 @@ function pktRatioCoap(ip, ping){
                 
                 pingreq.on('response', (res) => {
                     n++;
+                    i++;
                 })
 
                 pingreq.on('timeout', (res) => {
                     console.log('timeout');
                 })
 
-                i++;
+                pingreq.on('error', (err) => {
+                    i++;
+                })
+
                 pingreq.end();
             }
         }, ping)
