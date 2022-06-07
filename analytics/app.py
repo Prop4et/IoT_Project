@@ -32,6 +32,47 @@ query_smoke = 'from(bucket:"smoke")' \
 
 result_temp = query_api.query_data_frame(query_temp)
 
+df = result_temp.drop(columns=['result', 'table', '_start', '_stop', '_field', '_measurement'])
+df_temp = df.copy()
+df_temp = df_temp.loc[df_temp['sensor'] == '0']
+df_temp = df_temp.drop(columns=['lat', 'lon', 'sensor'])
+df_temp = df_temp.rename(columns = {'_time': 'Time', '_value': 'Hum'})
+df_temp['Time'] = df_temp['Time'].dt.strftime('%d-%m-%Y %H:%M:%S')
+
+
+
+history = [x for x in df_temp]
+predictions = list()
+for t in range(len(df_temp.index),(len(df.index)+10)):
+
+    model = ARIMA(history, order=(1,1,1)) #d is the number of time that the raw values are differentiated
+    model_fit = model.fit()
+    output = model_fit.forecast()
+    yest = output[0]
+    predictions.append(yest)
+timestamps= [x for x in range(len(df.index),(len(df.index)+10))]
+
+forecast = pd.DataFrame(zip(timestamps,predictions),columns =['time', 'val'])
+forecast['measurement'] = "views"
+
+cp = forecast.copy()
+
+lines = [str(cp["measurement"][d]) 
+        + ",type=forecast" 
+        + " " 
+        + "yhat=" + str(cp["val"][d]) 
+        + " " + str(int(time.mktime(cp['time'][d].timetuple()))) + "000000000" for d in range(len(cp))]
+
+
+
+
+#writing data predicted back on influx 
+_write_client = client.write_api(write_options=WriteOptions(batch_size=1000, 
+                                                            flush_interval=10_000,
+                                                            jitter_interval=2_000,
+                                                            retry_interval=5_000))
+
+_write_client.write(bucket, org, lines)
     # show the post with the given id, the id is an integer
 #return f'Forcasted for {predLen} timestamps'
 #@app.route("/")
