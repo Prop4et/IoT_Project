@@ -224,6 +224,11 @@ void callback_coap_ping(CoapPacket &packet, IPAddress ip, int port){
     }
 }
 
+void callback_coap_keepalive(CoapPacket &packet, IPAddress ip, int port){
+    char* buf = "alive";
+    coap.sendResponse(ip, port, packet.messageid, buf, strlen(buf), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+}
+
 
 //********************************HTTP vars***********************************************
 StaticJsonDocument<JSON_OBJECT_SIZE(256)> data_doc;
@@ -346,7 +351,7 @@ void setup(){
     coap.server(callback_coap_MQ2, MQ2_topic);
     coap.server(callback_coap_PPM, PPM_topic);
     coap.server(callback_coap_ping, "sensor/ping");
-
+    coap.server(callback_coap_keepalive, "sensor/keepalive")
     coap.start(5683);
 
 }
