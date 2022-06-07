@@ -1,7 +1,8 @@
 const mqtt = require('mqtt')
 const coap = require('coap')
 var coapTiming = {
-    ackTimeout: 60
+    ackTimeout: 0.10, 
+    maxRetransmit: 1
 };
 coap.updateTiming(coapTiming);
 
@@ -98,8 +99,8 @@ function coapReq(id, ip, sf){
             pathname: '/'+topicMqtt+subtopics[0],
             port: 5683,
             method: 'get',
-            confirmable: 'true',
-            retrySend: 'true'
+            confirmable: 'false',
+            retrySend: 'false'
         });
 
         req0.on('response', (res) => {
@@ -124,7 +125,7 @@ function coapReq(id, ip, sf){
             port: 5683,
             method: 'get',
             confirmable: 'true',
-            retrySend: 'true'
+            retrySend: 'false'
         });
 
         req1.on('response', (res) => {
@@ -148,8 +149,8 @@ function coapReq(id, ip, sf){
             pathname: '/'+topicMqtt+subtopics[2],
             port: 5683,
             method: 'get',
-            confirmable: 'true',
-            retrySend: 'true'
+            confirmable: 'false',
+            retrySend: 'false'
         });
         
         req2.on('response', (res) => {
@@ -173,7 +174,7 @@ function coapReq(id, ip, sf){
             pathname: '/'+topicMqtt+subtopics[3],
             port: 5683,
             method: 'get',
-            confirmable: 'true',
+            confirmable: 'false',
             retrySend: 'false'
         });
 
@@ -195,8 +196,9 @@ function coapReq(id, ip, sf){
 }
 
 
-function isAlive(id){
+function isAlive(id, ip){
     if(!(id in aliveInterval)){
+        console.log('isAlive started')
         aliveInterval[id] = setInterval(() => {
             var req = coap.request({
                 observe: true,
@@ -205,17 +207,35 @@ function isAlive(id){
                 port: 5683,
                 method: 'get',
                 confirmable: 'true',
-                retrySend: 'true'
+                retrySend: 'false'
             });
     
             req.on('response', (res) => {
-                
+                var ip = req.url.hostname;
+                Object.keys(params).forEach( e => {
+                    if(params[e]["ip"] == ip){
+                        console.log('found')
+                    }
+                })
             })
     
             req.on('error', (e) => {
-                console.log('sensor disconnected', e);
+                var ip = req.url.hostname;
+                Object.keys(params).forEach( e => {
+                    if(params[e]["ip"] == ip){
+                        clearInterval(aliveInterval[e]);
+                        aliveInterval[e] = null;
+                        params[e]["isSet"] = false;
+                        params[e]["prevProto"] = params[e]["proto"]
+                        params[e]["proto"] = 3
+                    }
+                })
+                req.destroy();
+                console.log('sensor disconnected', e, req.url.hostname);
+
             })
-        }, 60000);
+            req.end();
+        }, 200000);
     }
 }
 //------------------------------------HTTP-------------------------------
@@ -272,7 +292,7 @@ function postSensor(req, res){
     if(params[id].proto != 3)
         params[id].prevProto = params[id].proto;
     else
-        isAlive(id)
+        isAlive(id, params[id].ip)
     if(data.proto != 3)
         params[id].prevProto = data.proto;
     params[id].proto = data.proto;
@@ -331,7 +351,7 @@ function connectSensor(req, res){
             gasMax: parseInt(params[id].maxGas),
             proto: parseInt(params[id].proto)
         }
-        isAlive(id)
+        isAlive(id, params[id].ip)
         sendUpdate(data, id);
 
     }
