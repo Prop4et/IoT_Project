@@ -11,6 +11,29 @@ class InfluxClient {
         console.log("Influx connected")
     }
 
+    /*writeOW(lat, lon, bucket, data, tag){
+        const writeApi = this.client.getWriteApi(this.org, bucket);
+        writeApi.useDefaultTags({type: tag, lat: lat, lon: lon});
+        var point = new Point('val');
+
+        if(bucket == undefined || bucket == null) return;
+
+        if(bucket == 'aqi')
+            point = point.intField('value', data);
+        else
+            point = point.floatField('value', data);
+        writeApi.writePoint(point);
+
+        writeApi
+            .close()
+            .then(() => {
+                console.log('...Influx wrote for sensor ' + id + ': ' + bucket +'<-'+data);
+            })
+            .catch(e => {
+                console.log('Influx Error in writing',e);
+            })
+    }*/
+
     writeDB(id, lat, lon, bucket, data){
         //create a write API
         const writeApi = this.client.getWriteApi(this.org, bucket);
