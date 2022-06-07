@@ -4,7 +4,7 @@
 //PPM -> smoke, CO, CO2, alcohol, toluen, NH4, aceton
 const influx = require('./influx');
 const influxConfig = require('./influxconfig')
-const influxClient = new influx.InfluxClient(influxConfig.host, influxConfig.port, influxConfig.token, influxConfig.org);
+const influxClient = new influx.InfluxClient(influxConfig.remotehost, influxConfig.port, influxConfig.token, influxConfig.org);
 const topicMqtt = 'sensor/';
 const subtopics = ['info', 'temp_hum', 'MQ2', 'PPM']
 //everything here should become a send to the influx db
