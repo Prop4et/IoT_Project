@@ -71,7 +71,8 @@ def build_smoke_query(sensor_id):
 			' |> range(start:-6h)'\
 			' |> filter(fn: (r) => r._measurement == "val" and r._field == "value" and r.sensor == ''"'+str(sensor_id)+'"'')'
 
-#route to call for the prediction, i'd like to retrain the model daily with a span of data of 6 hours from 15 to 21
+#route to call for the training, i'd like to retrain the model daily with a span of data of 6 hours from 15 to 21, it's slow tho, i need to investigate for a good interval
+#and stop i think
 @app.route("/train/<int:sensor_id>")
 def train(sensor_id):
 	queries = {'temp': build_temp_query(sensor_id), 'hum': build_hum_query(sensor_id), 'smoke': build_smoke_query(sensor_id)}
