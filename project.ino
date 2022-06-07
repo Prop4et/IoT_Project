@@ -186,57 +186,47 @@ WiFiUDP coapServer;
 Coap coap(coapServer); //server coap
 //********************************COAP functions******************************************
 void callback_coap_info(CoapPacket &packet, IPAddress ip, int port){
-    info_doc["id"] = id_int;    info_doc["RSS"] = RSS;   //json for the info topic
-    serializeJson(info_doc, buffer_info);
-    coap.sendResponse(ip, port, packet.messageid, buffer_info, strlen(buffer_info), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+    if(protocol == 2){
+        info_doc["id"] = id_int;    info_doc["RSS"] = RSS;   //json for the info topic
+        serializeJson(info_doc, buffer_info);
+        coap.sendResponse(ip, port, packet.messageid, buffer_info, strlen(buffer_info), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+    }
 }
 
 void callback_coap_temp_hum(CoapPacket &packet, IPAddress ip, int port){
-    temp_hum_doc["id"] = id_int;   temp_hum_doc["temperature"] = t;    temp_hum_doc["humidity"] = h;  //json for the temperature humidity topic 
-    serializeJson(temp_hum_doc, buffer_temp_hum);
-    coap.sendResponse(ip, port, packet.messageid, buffer_temp_hum, strlen(buffer_temp_hum), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+    if(protocol == 2){
+        temp_hum_doc["id"] = id_int;   temp_hum_doc["temperature"] = t;    temp_hum_doc["humidity"] = h;  //json for the temperature humidity topic 
+        serializeJson(temp_hum_doc, buffer_temp_hum);
+        coap.sendResponse(ip, port, packet.messageid, buffer_temp_hum, strlen(buffer_temp_hum), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+    }
 }
 
 void callback_coap_MQ2(CoapPacket &packet, IPAddress ip, int port){
-    MQ2_doc["id"] = id_int; MQ2_doc["smoke"] = smoke;   MQ2_doc["AQI"] = AQI; MQ2_doc["avg"] = avg;    //json for the MQ2 sensor
-    serializeJson(MQ2_doc, buffer_MQ2);
-    coap.sendResponse(ip, port, packet.messageid, buffer_MQ2, strlen(buffer_MQ2), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+    if(protocol == 2){
+        MQ2_doc["id"] = id_int; MQ2_doc["smoke"] = smoke;   MQ2_doc["AQI"] = AQI; MQ2_doc["avg"] = avg;    //json for the MQ2 sensor
+        serializeJson(MQ2_doc, buffer_MQ2);
+        coap.sendResponse(ip, port, packet.messageid, buffer_MQ2, strlen(buffer_MQ2), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+    }
 }
 
 void callback_coap_PPM(CoapPacket &packet, IPAddress ip, int port){
-    PPM_doc["id"] = id_int; PPM_doc["CO"] = CO;   PPM_doc["CO2"] = CO2;    PPM_doc["al"] = alcohol;   PPM_doc["to"] = toluen;    PPM_doc["NH4"] = NH4;    PPM_doc["ac"] = aceton; //PPM json    
-    serializeJson(PPM_doc, buffer_PPM);
-    coap.sendResponse(ip, port, packet.messageid, buffer_PPM, strlen(buffer_PPM), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+    if(protocol == 2){
+        PPM_doc["id"] = id_int; PPM_doc["CO"] = CO;   PPM_doc["CO2"] = CO2;    PPM_doc["al"] = alcohol;   PPM_doc["to"] = toluen;    PPM_doc["NH4"] = NH4;    PPM_doc["ac"] = aceton; //PPM json    
+        serializeJson(PPM_doc, buffer_PPM);
+        coap.sendResponse(ip, port, packet.messageid, buffer_PPM, strlen(buffer_PPM), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+    }
 }
 
 void callback_coap_ping(CoapPacket &packet, IPAddress ip, int port){
-    char* buf = "ping";
-    coap.sendResponse(ip, port, packet.messageid, buf, strlen(buf), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+    if(protocol == 4){
+        char* buf = "pong";
+        coap.sendResponse(ip, port, packet.messageid, buf, strlen(buf), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+    }
 }
 
 
 //********************************HTTP vars***********************************************
 StaticJsonDocument<JSON_OBJECT_SIZE(256)> data_doc;
-/*
-void httpSetup(){
-    HTTPClient http;
-    Serial.println("Post request");
-    http.begin("http://192.168.1.68:8080/sensor");
-    http.addHeader("Content-Type", "application/json");
-    int httpCode = http.POST("{\"id\":\"3030\",\"ip\":\""+WiFi.localIP().toString()+"\"}");
-
-    // httpCode will be negative on error
-    if(httpCode > 0) {
-        // HTTP header has been send and Server response header has been handled
-        Serial.print("[HTTP] POST... code: ");
-        Serial.println(httpCode);
-    } else {
-        Serial.print("[HTTP] POST... failed, error: ");
-        Serial.println(http.errorToString(httpCode).c_str());
-    }
-    http.end();
-}*/
-
 void httpSetup(){
     //get ID
     HTTPClient http;
@@ -491,8 +481,8 @@ void loop(){
         }
     }
     
-    if(protocol == 2 || protocol == 4){
-        coap.loop();
-    }
+    //if(protocol == 2 || protocol == 4){
+    coap.loop();
+    //}
         
 }
