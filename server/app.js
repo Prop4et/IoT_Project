@@ -66,4 +66,9 @@ app.listen(8080, '192.168.1.133', function () {
   scheduler.call(()=> {
     //here goes the function
   }).daily().run();
+
+  //retrain model weekly every sunday at 23.59 with data from the last 8 hours
+  scheduler.call(()=> {
+    //here goes the function
+  }).weeklyOn(0, '20:00').run();
 });
