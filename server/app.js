@@ -60,7 +60,7 @@ app.use(function(req, res, next) {
 //get value for temperature and humidity daily
 
 // start the server in the port 3000 !
-app.listen(8080, '192.168.1.94', function () {
+app.listen(8080, '192.168.1.133', function () {
   console.log('App server listening on port 8080.');
   //send avg hum and temp at each new day
   scheduler.call(()=> {
