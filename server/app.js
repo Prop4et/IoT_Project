@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser')
 const protocols = require('./protocols')
-const scheduler = require('expressweb-scheduler');
+
 
 const path = require('path')
 //MQTT
@@ -52,18 +52,20 @@ app.post('/update-sensor', protocols.postSensor);
 
 app.get('/getSensors', protocols.getSensors);
 
+app.get('/sensorIds', protocols.getSensorIds)
 // Change the 404 message modifing the middleware
 app.use(function(req, res, next) {
   res.status(404).send("Sorry, that route doesn't exist. Have a nice day :)");
 });
 
-//get value for temperature and humidity daily
-
+//get value for temperature and humidity daily, that's for the startup (it may happen that i have it more than once in a day when i test this )
+scheduler.call(()=> {
+  //here goes the function
+}).daily().run();
 // start the server in the port 3000 !
-app.listen(8080, '192.168.1.133', function () {
+app.listen(8080, '192.168.1.94', function () {
   console.log('App server listening on port 8080.');
-  //send avg hum and temp at each new day
-  scheduler.call(()=> {
-    //here goes the function
-  }).daily().run();
+    scheduler.call(()=> {
+      //here goes the function
+    }).daily().run();
 });

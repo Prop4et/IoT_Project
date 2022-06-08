@@ -8,7 +8,7 @@ coap.updateTiming(coapTiming);
 
 const config = require('./config')
 const parser = require('./parser')
-var params = {}
+var params = {0 : {}}
 var intervals = {}
 var aliveInterval = {}
 // ----- MQTT setup -----
@@ -84,6 +84,10 @@ function sendUpdate(data, id){
 
 function getSensors(req, res){
     res.json(params);
+}
+
+function getSensorIds(req, res){
+    res.json({'ids': Object.keys(params)})
 }
 
 
@@ -227,6 +231,7 @@ function isAlive(id, ip){
                 var ip = req.url.hostname;
                 Object.keys(params).forEach( e => {
                     if(params[e]["ip"] == ip){
+                        console.log('sensor is not alive anymore')
                         clearInterval(aliveInterval[e]);
                         aliveInterval[e] = null;
                         params[e]["isSet"] = false;
@@ -371,9 +376,10 @@ function connectSensor(req, res){
             gasMax: parseInt(params[id].maxGas),
             proto: parseInt(params[id].proto)
         }
+        params[id].isSet = true
         isAlive(id, params[id].ip)
         sendUpdate(data, id);
-
+        
     }
     res.sendStatus(200);
 
@@ -500,6 +506,7 @@ module.exports = {
     initializeMQTT,     
     sendUpdate,
     getSensors,
+    getSensorIds,
     setPingMQTT, 
     getNewId
 }

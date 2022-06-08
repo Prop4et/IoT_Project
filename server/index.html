@@ -547,8 +547,10 @@ select, input{
 
             for(var id in ids){
 
-                if(!data[ids[id]]["isSet"])
+                if(!data[ids[id]]["isSet"]){
+                    console.log('sensor is not set, probably offline')
                     continue;
+                }
                 //update selector for the ids
                 var option = document.createElement("option");
                 option.value = ids[id];
