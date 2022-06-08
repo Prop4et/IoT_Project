@@ -356,9 +356,10 @@ function connectSensor(req, res){
             gasMax: parseInt(params[id].maxGas),
             proto: parseInt(params[id].proto)
         }
+        params[id].isSet = true
         isAlive(id, params[id].ip)
         sendUpdate(data, id);
-
+        
     }
     res.sendStatus(200);
 
