@@ -1,11 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser')
 const protocols = require('./protocols')
-<<<<<<< HEAD
-const scheduler = require('expressweb-scheduler');
-=======
 const scheduler = require('expressweb-scheduler')
->>>>>>> 9d845f22b5c5ee628ad966c5547203d363407d9e
 
 const path = require('path')
 //MQTT
