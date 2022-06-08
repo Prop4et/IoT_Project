@@ -110,6 +110,7 @@ function coapReq(id, ip, sf){
 
         req0.on('timeout', (e) => {
             console.log('req0 timetout', e);
+            req0.destroy();
         })
         
         req0.on('error', (error) => {
@@ -135,6 +136,7 @@ function coapReq(id, ip, sf){
 
         req1.on('timeout', (e) => {
             console.log('req1 timetout', e);
+            req1.destroy();
         })
 
         req1.on('error', (error) => {
@@ -159,6 +161,7 @@ function coapReq(id, ip, sf){
         })
 
         req2.on('timeout', (e) => {
+            req2.destroy();
             console.log('req2 timetout', e);
         })
 
@@ -188,6 +191,7 @@ function coapReq(id, ip, sf){
         })
         
         req3.on('error', (error) => {
+            req3.destroy();
             console.error( error );
         });
 
@@ -220,6 +224,22 @@ function isAlive(id, ip){
             })
     
             req.on('error', (e) => {
+                var ip = req.url.hostname;
+                Object.keys(params).forEach( e => {
+                    if(params[e]["ip"] == ip){
+                        clearInterval(aliveInterval[e]);
+                        aliveInterval[e] = null;
+                        params[e]["isSet"] = false;
+                        params[e]["prevProto"] = params[e]["proto"]
+                        params[e]["proto"] = 3
+                    }
+                })
+                req.destroy();
+                console.log('sensor disconnected', e, req.url.hostname);
+
+            })
+
+            req.on('timeout', (e) => {
                 var ip = req.url.hostname;
                 Object.keys(params).forEach( e => {
                     if(params[e]["ip"] == ip){
