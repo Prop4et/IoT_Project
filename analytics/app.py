@@ -22,35 +22,34 @@ query_api = client.query_api()
 
 @app.route('/newId/<int:id>', methods=['POST'])
 def newId(id):
-    ids.append(str(id))
+    ids.append(str(id)) #append is atomic
 
 def create_df(query):
 	result_temp = query_api.query_data_frame(query)
 	if result_temp.empty:
 		print('Query result is none')
 		return None
+	#get the dataframe and clean it up
 	df_clean = result_temp.copy()
 	df_clean = df_clean.drop(columns=['result', 'table', '_start', '_stop', '_field', '_measurement', 'lat', 'lon', 'sensor'])
 	df_clean = df_clean.rename(columns = {'_time': 'Time', '_value': 'v'})
-	#CHECK THIS
 	df_clean['Time'] = pd.to_datetime(df_clean['Time'].dt.strftime('%Y-%m-%d %H:%M:%S'))
-	#df_clean['Time']= pd.to_datetime(df['time'])
 	return df_clean
 
-#time(v: "2016-06-13T17:43:50.1004002Z")		
 #QUERY HANDLING
 def build_query(sensor_id, bucket):
     return 'from(bucket:"'+bucket+'")' \
 			' |> range(start: -2h)'\
 			' |> filter(fn: (r) => r._measurement == "val" and r._field == "value" and r.sensor == ''"'+str(sensor_id)+'"'')'
 
-def writeDB(predictions, last_time, sensor_id):
+def writeDB(predictions, last_time, sensor_id, bucket):
 	i = 0
 	print('last time: ', last_time)
 	for p in predictions:
-		#this one needs to be printed
+    	#correct
 		t = (last_time+timedelta(seconds=i)).strftime('%Y-%m-%dT%H:%M:%S')
-		pt = Point("val").tag('sensor', sensor_id).field("value", p).time(t, write_precision=WritePrecision.S)
+		#write the new point
+		pt = Point("val").tag('sensor', sensor_id).field("bucket", bucket).field("value", p).time(t, write_precision=WritePrecision.S)
 		write_api.write(bucket="predictions", org="IoT", record=pt)
 		i += 1
 
@@ -63,7 +62,7 @@ def train_and_predict(df, window):
 	return fitted.predict(start=len(df), end=len(df)+window-1)
 
 def prediction(bucket, sensorIds):
-	print(sensorIds)
+	print(sensorIds) #id reads can be parallel idc
 	for id in sensorIds:
 		print('id', id)
 		query = build_query(id, bucket)
@@ -71,7 +70,7 @@ def prediction(bucket, sensorIds):
 		df = create_df(query)
 		if df is not None:
 			predictions = train_and_predict(df, 300)
-			writeDB(predictions, df.iloc[len(df)-1]['Time'], id)
+			writeDB(predictions, df.iloc[len(df)-1]['Time'], id, bucket)
 
 
 #need to create three of them to make it parallel
