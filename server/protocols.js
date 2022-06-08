@@ -1,5 +1,6 @@
 const mqtt = require('mqtt')
 const coap = require('coap')
+const request = require('request')
 var coapTiming = {
     ackTimeout: 0.10, 
     maxRetransmit: 1
@@ -8,7 +9,7 @@ coap.updateTiming(coapTiming);
 
 const config = require('./config')
 const parser = require('./parser')
-var params = {0 : {}}
+var params = {}
 var intervals = {}
 var aliveInterval = {}
 // ----- MQTT setup -----
@@ -113,7 +114,6 @@ function coapReq(id, ip, sf){
         })
 
         req0.on('timeout', (e) => {
-            console.log('req0 timetout', e);
             req0.destroy();
         })
         
@@ -139,7 +139,6 @@ function coapReq(id, ip, sf){
         })
 
         req1.on('timeout', (e) => {
-            console.log('req1 timetout', e);
             req1.destroy();
         })
 
@@ -166,7 +165,6 @@ function coapReq(id, ip, sf){
 
         req2.on('timeout', (e) => {
             req2.destroy();
-            console.log('req2 timetout', e);
         })
 
         req2.on('error', (error) => {
@@ -196,7 +194,6 @@ function coapReq(id, ip, sf){
         
         req3.on('error', (error) => {
             req3.destroy();
-            console.error( error );
         });
 
         req3.end();
@@ -352,7 +349,7 @@ function getNewId(req, res){
 
 function connectSensor(req, res){
     const id = req.body.id;
-    console.log('HTTP connecting a new sensor with id ' + id);
+    console.log('HTTP connecting a new sensor with id ' + id, params);
     if(!(id in params)){
         params[id] = {
             ip: req.body.ip,
@@ -378,8 +375,14 @@ function connectSensor(req, res){
         }
         params[id].isSet = true
         isAlive(id, params[id].ip)
+        request.post('http://192.168.1.94/'+id,
+            function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    console.log(body);
+                }
+            }
+        );
         sendUpdate(data, id);
-        
     }
     res.sendStatus(200);
 
@@ -401,6 +404,7 @@ const server = coap.createServer()
 
 
 async function setPingCoap(id, ip){
+    console.log('coap ping started')
     const ping = await pingCoap(ip);
     const ratio = await pktRatioCoap(ip, ping);
     params[id]["coapping"] = Math.ceil(ping);
