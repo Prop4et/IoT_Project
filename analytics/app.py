@@ -20,9 +20,10 @@ fd.close()
 write_api = client.write_api(write_options=SYNCHRONOUS)
 query_api = client.query_api()  
 
-@app.route('/newId/<int:id>', methods=['POST'])
+@app.route('/newId/<int:id>')
 def newId(id):
-    ids.append(str(id)) #append is atomic
+    print('new sensor added with id', id)
+    ids.append(id) #append is atomic
 
 def create_df(query):
 	result_temp = query_api.query_data_frame(query)
@@ -62,7 +63,6 @@ def train_and_predict(df, window):
 	return fitted.predict(start=len(df), end=len(df)+window-1)
 
 def prediction(bucket, sensorIds):
-	print(sensorIds) #id reads can be parallel idc
 	for id in sensorIds:
 		print('id', id)
 		query = build_query(id, bucket)
@@ -74,9 +74,9 @@ def prediction(bucket, sensorIds):
 
 
 #need to create three of them to make it parallel
-intervalUpdateT = Interval(60.0, prediction, 'temp', ids) #retrain each model every minute
-intervalUpdateH = Interval(60.0, prediction, 'hum', ids) #retrain each model every minute
-intervalUpdateS = Interval(60.0, prediction, 'smoke', ids) #retrain each model every minute
+intervalUpdateT = Interval(60.0, prediction, ["temp", ids]) #retrain each model every minute
+intervalUpdateH = Interval(60.0, prediction, ["hum", ids]) #retrain each model every minute
+intervalUpdateS = Interval(60.0, prediction, ["smoke", ids]) #retrain each model every minute
 
 intervalUpdateT.run()
 intervalUpdateH.run()
