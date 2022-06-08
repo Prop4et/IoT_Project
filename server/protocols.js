@@ -1,5 +1,6 @@
 const mqtt = require('mqtt')
 const coap = require('coap')
+const request = require('request')
 var coapTiming = {
     ackTimeout: 0.10, 
     maxRetransmit: 1
@@ -8,7 +9,7 @@ coap.updateTiming(coapTiming);
 
 const config = require('./config')
 const parser = require('./parser')
-var params = {0 : {}}
+var params = {}
 var intervals = {}
 var aliveInterval = {}
 // ----- MQTT setup -----
@@ -113,7 +114,7 @@ function coapReq(id, ip, sf){
         })
 
         req0.on('timeout', (e) => {
-            console.log('req0 timetout', e);
+            req0.destroy();
         })
         
         req0.on('error', (error) => {
@@ -138,7 +139,7 @@ function coapReq(id, ip, sf){
         })
 
         req1.on('timeout', (e) => {
-            console.log('req1 timetout', e);
+            req1.destroy();
         })
 
         req1.on('error', (error) => {
@@ -163,7 +164,7 @@ function coapReq(id, ip, sf){
         })
 
         req2.on('timeout', (e) => {
-            console.log('req2 timetout', e);
+            req2.destroy();
         })
 
         req2.on('error', (error) => {
@@ -192,7 +193,7 @@ function coapReq(id, ip, sf){
         })
         
         req3.on('error', (error) => {
-            console.error( error );
+            req3.destroy();
         });
 
         req3.end();
@@ -228,6 +229,22 @@ function isAlive(id, ip){
                 Object.keys(params).forEach( e => {
                     if(params[e]["ip"] == ip){
                         console.log('sensor is not alive anymore')
+                        clearInterval(aliveInterval[e]);
+                        aliveInterval[e] = null;
+                        params[e]["isSet"] = false;
+                        params[e]["prevProto"] = params[e]["proto"]
+                        params[e]["proto"] = 3
+                    }
+                })
+                req.destroy();
+                console.log('sensor disconnected', e, req.url.hostname);
+
+            })
+
+            req.on('timeout', (e) => {
+                var ip = req.url.hostname;
+                Object.keys(params).forEach( e => {
+                    if(params[e]["ip"] == ip){
                         clearInterval(aliveInterval[e]);
                         aliveInterval[e] = null;
                         params[e]["isSet"] = false;
@@ -332,7 +349,7 @@ function getNewId(req, res){
 
 function connectSensor(req, res){
     const id = req.body.id;
-    console.log('HTTP connecting a new sensor with id ' + id);
+    console.log('HTTP connecting a new sensor with id ' + id, params);
     if(!(id in params)){
         params[id] = {
             ip: req.body.ip,
@@ -358,8 +375,14 @@ function connectSensor(req, res){
         }
         params[id].isSet = true
         isAlive(id, params[id].ip)
+        request.post('http://192.168.1.94/'+id,
+            function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    console.log(body);
+                }
+            }
+        );
         sendUpdate(data, id);
-        
     }
     res.sendStatus(200);
 
@@ -381,6 +404,7 @@ const server = coap.createServer()
 
 
 async function setPingCoap(id, ip){
+    console.log('coap ping started')
     const ping = await pingCoap(ip);
     const ratio = await pktRatioCoap(ip, ping);
     params[id]["coapping"] = Math.ceil(ping);
