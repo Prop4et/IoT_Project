@@ -9,7 +9,7 @@ CoAP-simple-library
 Thing.CoAP
 /protocols
 appunti.txt
-server/prova.html
+server/dumb.js
 analytics/static
 analytics/notebooks
 analytics/__pycache__

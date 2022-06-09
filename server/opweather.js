@@ -24,9 +24,3 @@ var url = 'http://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon='+
         } 
     })
 } 
-//THIS IS FOR TEST  
-var lat = 44.501; // Indoor latitude 
-var lon = 11.350; // Indoor longitude 
-  
-// Function call 
-forecast(lat, lon); 

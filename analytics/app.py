@@ -100,5 +100,4 @@ def predict(sensorId, window):
 			window = 15
 		intervalsId[sensorId][bucket] = Interval(window-15, prediction, [bucket, window, sensorId])
 		intervalsId[sensorId][bucket].start()
-	print(intervalsId[sensorId])
 	return f'started prediction for id ' + str(sensorId)
