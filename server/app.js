@@ -4,7 +4,7 @@ const protocols = require('./protocols')
 
 const path = require('path')
 //MQTT
-protocols.initializeMQTT()
+//protocols.initializeMQTT()
 
 const portHttp = 8080
 
@@ -40,18 +40,18 @@ this is not used anymore, the esp will receive un update on mqtt whenever
 the dashboard updates them
 app.get('/sensor', http.getSensor);
 */
-app.post('/sensor', protocols.connectSensor);
-app.get('/sensor', protocols.getNewId);
-app.post('/pingMqtt', protocols.setPingMQTT);
+//app.post('/sensor', protocols.connectSensor);
+//app.get('/sensor', protocols.getNewId);
+//app.post('/pingMqtt', protocols.setPingMQTT);
 
 //send avg temp and hum on startup
 
 //set parameters from dashboard
-app.post('/update-sensor', protocols.postSensor);
+//app.post('/update-sensor', protocols.postSensor);
 
-app.get('/getSensors', protocols.getSensors);
+//app.get('/getSensors', protocols.getSensors);
 
-app.get('/sensorIds', protocols.getSensorIds)
+//app.get('/sensorIds', protocols.getSensorIds)
 // Change the 404 message modifing the middleware
 app.use(function(req, res, next) {
   res.status(404).send("Sorry, that route doesn't exist. Have a nice day :)");
