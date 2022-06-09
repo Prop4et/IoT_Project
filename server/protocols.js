@@ -219,12 +219,6 @@ function isAlive(id, ip){
             });
     
             req.on('response', (res) => {
-                var ip = req.url.hostname;
-                Object.keys(params).forEach( e => {
-                    if(params[e]["ip"] == ip){
-                        console.log('found')
-                    }
-                })
             })
     
             req.on('error', (e) => {
@@ -237,6 +231,13 @@ function isAlive(id, ip){
                         params[e]["isSet"] = false;
                         params[e]["prevProto"] = params[e]["proto"]
                         params[e]["proto"] = 3
+                        request.post('http://127.0.0.1:5000/removeId/'+id,
+                            function (error, response, body) {
+                                if (!error && response.statusCode == 200) {
+                                    console.log(body);
+                                }
+                            }
+                        )
                     }
                 })
                 req.destroy();
@@ -353,7 +354,7 @@ function getNewId(req, res){
 function connectSensor(req, res){
     const id = req.body.id;
     console.log('HTTP connecting a new sensor with id ' + id, params);
-    if(!(id in params)){
+    if(!(id in params) || !params[id].isSet){
         params[id] = {
             ip: req.body.ip,
             lat: req.body.lat, 
@@ -380,7 +381,7 @@ function connectSensor(req, res){
         }
         params[id].isSet = true
         isAlive(id, params[id].ip)
-        request.post('http://192.168.1.94/'+id,
+        request.post('http://127.0.0.1:5000/newId/'+id,
             function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     console.log(body);
@@ -418,6 +419,13 @@ async function setPingCoap(id, ip){
     if(params[id].prevProto)
         params[id].proto = params[id].prevProto;
     console.log("Pings done");
+    request.post('http://127.0.0.1:5000/newId/'+id,
+            function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    console.log(body);
+                }
+            }
+        );
     
 }
 
