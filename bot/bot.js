@@ -1,10 +1,10 @@
 const { InfluxDB } = require('@influxdata/influxdb-client')
 const { Telegraf } = require('telegraf')
 
-const influxConfig = require('../server/influxconfig')
+const influxConfig = require('../server/config').influx
 const botConfig = require('./botconfig')
 
-client  = new InfluxDB({ url: 'http://' + influxConfig.host + ":" + influxConfig.port, token: influxConfig.token })
+client  = new InfluxDB({ url: 'http://' + influxConfig.remotehost + ":" + influxConfig.port, token: influxConfig.token })
 var updateIntervalId = {};
 var alertIntervalId = {};
 bot = new Telegraf(botConfig.token)
@@ -89,17 +89,17 @@ for (const [key, value] of Object.entries(influxConfig.buckets)) {
                     } else {
                         console.log('Writing bot for /' + value + " command");
                         switch(value){
-                            case "temp": context.reply("The current mean temperature is " + Math.round(rowResult, 2) + "° on sensor " + sensorId); break;
-                            case "hum" : context.reply("The current mean humidity percentage is " + Math.round(rowResult, 2) + "% on sensor " + sensorId); break;
-                            case "rss": context.reply("The current mean RSS is " + Math.round(rowResult, 2) + " dBm on sensor " + sensorId); break;
-                            case "aqi": context.reply("The current mean AQI value is " + Math.round(rowResult, 2) + " on sensor " + sensorId); break;
-                            case "smoke": context.reply("The current mean smoke value is " + Math.round(rowResult, 2) + " ppm on sensor " + sensorId); break;
-                            case "co": context.reply("The current mean co value is " + Math.round(rowResult, 2) + " ppm on sensor " + sensorId); break;
-                            case "co2": context.reply("The current mean co2 value is " + Math.round(rowResult, 2) + " ppm on sensor " + sensorId); break;
-                            case "to": context.reply("The current mean toluen value is " + Math.round(rowResult, 2) + " ppm on sensor " + sensorId); break;
-                            case "nh4": context.reply("The current mean nh4 value is " + Math.round(rowResult, 2) + " ppm on sensor " + sensorId); break;
-                            case "ac": context.reply("The current mean acetone value is " + Math.round(rowResult, 2) + " ppm on sensor " + sensorId); break;
-                            case "al": context.reply("The current mean alcohol value is " + Math.round(rowResult, 2) + " ppm on sensor " + sensorId); break;
+                            case "temp": context.reply("The current mean temperature is " + rowResult.toFixed(2) + "° on sensor " + sensorId); break;
+                            case "hum" : context.reply("The current mean humidity percentage is " + rowResult.toFixed(2) + "% on sensor " + sensorId); break;
+                            case "rss": context.reply("The current mean RSS is " + rowResult.toFixed(2) + " dBm on sensor " + sensorId); break;
+                            case "aqi": context.reply("The current mean AQI value is " + rowResult.toFixed(2) + " on sensor " + sensorId); break;
+                            case "smoke": context.reply("The current mean smoke value is " + rowResult.toFixed(2) + " ppm on sensor " + sensorId); break;
+                            case "co": context.reply("The current mean co value is " + rowResult.toFixed(2) + " ppm on sensor " + sensorId); break;
+                            case "co2": context.reply("The current mean co2 value is " + rowResult.toFixed(2) + " ppm on sensor " + sensorId); break;
+                            case "to": context.reply("The current mean toluen value is " + rowResult.toFixed(2) + " ppm on sensor " + sensorId); break;
+                            case "nh4": context.reply("The current mean nh4 value is " + rowResult.toFixed(2) + " ppm on sensor " + sensorId); break;
+                            case "ac": context.reply("The current mean acetone value is " + rowResult.toFixed(2) + " ppm on sensor " + sensorId); break;
+                            case "al": context.reply("The current mean alcohol value is " + rowResult.toFixed(2) + " ppm on sensor " + sensorId); break;
 
                             default: break;
                         }
@@ -155,7 +155,7 @@ bot.command('pon', context =>{
                     if(rowResult == undefined || rowResult == null){
                         context.reply("Sensor is offline, try later!")
                     } else {
-                        msg += "mean value for " + value + " is " + Math.round(rowResult, 2) + "\n";
+                        msg += "mean value for " + value + " is " + rowResult.toFixed(2) + "\n";
                     }
                     i++;
                     if(i == Object.keys(influxConfig.buckets).length){
