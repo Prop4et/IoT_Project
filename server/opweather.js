@@ -24,3 +24,7 @@ var url = 'http://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon='+
         } 
     })
 } 
+
+module.exports = {
+    forecast
+}

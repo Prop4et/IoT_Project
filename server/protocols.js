@@ -2,6 +2,7 @@ const mqtt = require('mqtt')
 const coap = require('coap')
 const request = require('request')
 const scheduler = require('expressweb-scheduler')
+const opweather = require('./opweather')
 
 var coapTiming = {
     ackTimeout: 0.10, 
@@ -370,8 +371,10 @@ function connectSensor(req, res){
             prevProto: null,
             isSet: false 
         }
-        if( gpsList.findIndex((e) => e[0] === req.body.lat && e[1] === req.body.lon) === -1)
+        if( gpsList.findIndex((e) => e[0] === req.body.lat && e[1] === req.body.lon) === -1){
             gpsList.push([req.body.lat, req.body.lon]);
+            opweather.forecast(req.body.lat, req.body.lon)
+        }
     }else{
         const data = {
             sampleFrequency: parseInt(params[id].sampleFrequency),
@@ -512,36 +515,30 @@ function pingCoap(ip){
 function dailyForecast(){
     scheduler.call(()=> {
         gpsList.forEach((e) => {
-            forecast(e[0], e[1])
+            opweather.forecast(e[0], e[1])
         });
     }).dailyAt('00:00').run();
 
     scheduler.call(()=> {
         gpsList.forEach((e) => {
-            forecast(e[0], e[1])
+            opweather.forecast(e[0], e[1])
         });
     }).dailyAt('06:00').run();
 
     scheduler.call(()=> {
         gpsList.forEach((e) => {
-            forecast(e[0], e[1])
+            opweather.forecast(e[0], e[1])
         });
     }).dailyAt('12:00').run();
 
     scheduler.call(()=> {
         gpsList.forEach((e) => {
-            forecast(e[0], e[1])
+            opweather.forecast(e[0], e[1])
         });
     }).dailyAt('18:00').run();
     
 }
 
-//used on server startup (can create duplicates idc)
-function simpleForecast(){
-    gpsList.forEach((e) => {
-        forecast(e[0], e[1])
-    });
-}
 module.exports = {
     postSensor,
     connectSensor,
@@ -551,8 +548,7 @@ module.exports = {
     getSensorIds,
     setPingMQTT, 
     getNewId,
-    dailyForecast,
-    simpleForecast,
+    dailyForecast
 }
 
 
