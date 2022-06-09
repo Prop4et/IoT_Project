@@ -29,7 +29,7 @@
     - [x] Register new device
     - [x] Config parameters
     - [ ] Visualize position on a map
-    - [ ] Access data through grafana
+    - [x] Access data through grafana
 ## CONTROLLER AND HARDWARE 
 - ESP32 dev module
 - MQ2 gas and smoke sensor
