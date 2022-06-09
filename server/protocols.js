@@ -1,17 +1,20 @@
 const mqtt = require('mqtt')
 const coap = require('coap')
 const request = require('request')
+const scheduler = require('expressweb-scheduler')
+
 var coapTiming = {
     ackTimeout: 0.10, 
     maxRetransmit: 1
 };
 coap.updateTiming(coapTiming);
 
-const config = require('./config')
+const config = require('./config').mqtt
 const parser = require('./parser')
 var params = {}
 var intervals = {}
 var aliveInterval = {}
+var gpsList= []
 // ----- MQTT setup -----
 const hostMqtt = config.host; // Broker Mosquitto, should i make mine?
 const portMqtt = config.port; // listen port for MQTT
@@ -366,6 +369,8 @@ function connectSensor(req, res){
             prevProto: null,
             isSet: false 
         }
+        if( gpsList.findIndex((e) => e[0] === req.body.lat && e[1] === req.body.lon) === -1)
+            gpsList.push([req.body.lat, req.body.lon]);
     }else{
         const data = {
             sampleFrequency: parseInt(params[id].sampleFrequency),
@@ -412,15 +417,7 @@ async function setPingCoap(id, ip){
     params[id]["isSet"] = true;
     if(params[id].prevProto)
         params[id].proto = params[id].prevProto;
-    /*const data = {
-        sampleFrequency: parseInt(params[id].sampleFrequency),
-        gasMin: parseInt(params[id].minGas),
-        gasMax: parseInt(params[id].maxGas),
-        proto: parseInt(params[id].proto)
-    }*/
     console.log("Pings done");
-    //THIS ONLY IF AUTOMATED STARTUP
-    //sendUpdate(data, id);
     
 }
 
@@ -504,6 +501,13 @@ function pingCoap(ip){
       });
 }
 
+function dailyForecast(){
+    scheduler.call(()=> {
+        gpsList.forEach((e) => {
+            forecast(e[0], e[1])
+        });
+    }).everySixHours().run();
+}
 module.exports = {
     postSensor,
     connectSensor,
@@ -512,7 +516,8 @@ module.exports = {
     getSensors,
     getSensorIds,
     setPingMQTT, 
-    getNewId
+    getNewId,
+    dailyForecast
 }
 
 
