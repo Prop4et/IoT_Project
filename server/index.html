@@ -436,6 +436,9 @@ select, input{
                                 <th>
                                     <h3>Sample F [ms]</h3>
                                 </th>
+                                <th>
+                                    <i class='bx bx-link-external' id="link-grafana" title="Go to grafana dashboard"></i>
+                                </th>
                             </tr>
                             </thead>
                             <tbody>
@@ -482,9 +485,6 @@ select, input{
                             <th>
                                 <h3>SF</h3>
                             </th>
-                            <th>
-                                <h3>To Grafana</h3>
-                            </th>
                           </tr>
                         </thead>
                         <tbody id="sensors-body" style="color:black">
@@ -519,7 +519,15 @@ select, input{
     const updateBtn = document.getElementById('update-btn');
     const sendBtn = document.getElementById('send-btn');
     
-
+    const grafana = document.getElementById('link-grafana');
+    grafana.addEventListener("click", () => {
+        var selector = document.getElementById('id');
+        id = selector.value;
+        if(id !== '-1'){
+            window.open('http://localhost:3000/d/u1ORJBrnz/progetto_iot?orgId='+id+'&from=now-1h&to=now%2B2m', '_blank')
+        }
+    })    
+    
     const selector = document.getElementById('id');
     const sensorbody = document.getElementById("sensors-body");
     updateBtn.addEventListener("click", (e) => updateInterface());
@@ -541,7 +549,7 @@ select, input{
             }
 
             var option = document.createElement("option");
-            option.value = "None";
+            option.value = -1;
             option.innerHTML = "-";
             selector.appendChild(option);
 
@@ -581,10 +589,6 @@ select, input{
                 else
                     cell4.innerHTML = "-"
                 cell5.innerHTML = data[ids[id]]["sampleFrequency"];
-                let goGrafana = () => {
-                    window.open('http://192.168.1.133:3000/d/u1ORJBrnz/progetto_iot?orgId='+ids[id]+'1&from=now-1h&to=now%2B2m', '_blank')
-                }
-                cell6.innerHTML = <box-icon name='link-external' onclick="goGrafana()"></box-icon>
                 
             }
 

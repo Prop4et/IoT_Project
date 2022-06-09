@@ -222,7 +222,7 @@ function isAlive(id, ip){
         console.log('isAlive started')
         aliveInterval[id] = setInterval(() => {
             var req = coap.request({
-                observe: true,
+                observe: false,
                 hostname: ip,
                 pathname: '/sensor/keepalive',
                 port: 5683,
@@ -254,7 +254,6 @@ function isAlive(id, ip){
                     }
                 })
                 req.destroy();
-                console.log('sensor disconnected', e, req.url.hostname);
 
             })
 
