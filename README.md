@@ -15,7 +15,7 @@
     - [x] InlfuxDB query 
     - [x] Grafana Dashboard for each data flow
     - [x] Grafana alert for AQI >= 1
-- [ ] Data Analytics
+- [x] Data Analytics
 
 ### Additional Components
 - [ ] Outdoor temperature value from open API Weather
