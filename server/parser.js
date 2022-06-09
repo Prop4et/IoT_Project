@@ -3,7 +3,7 @@
 //MQ2 -> AQI smoke
 //PPM -> smoke, CO, CO2, alcohol, toluen, NH4, aceton
 const influx = require('./influx');
-const influxConfig = require('./influxconfig')
+const influxConfig = require('./config').influx
 const influxClient = new influx.InfluxClient(influxConfig.host, influxConfig.port, influxConfig.token, influxConfig.org);
 const topicMqtt = 'sensor/';
 const subtopics = ['info', 'temp_hum', 'MQ2', 'PPM']

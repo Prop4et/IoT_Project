@@ -1,17 +1,20 @@
 const mqtt = require('mqtt')
 const coap = require('coap')
 const request = require('request')
+const scheduler = require('expressweb-scheduler')
+
 var coapTiming = {
     ackTimeout: 0.10, 
     maxRetransmit: 1
 };
 coap.updateTiming(coapTiming);
 
-const config = require('./config')
+const config = require('./config').mqtt
 const parser = require('./parser')
 var params = {}
 var intervals = {}
 var aliveInterval = {}
+var gpsList= []
 // ----- MQTT setup -----
 const hostMqtt = config.host; // Broker Mosquitto, should i make mine?
 const portMqtt = config.port; // listen port for MQTT
@@ -216,12 +219,6 @@ function isAlive(id, ip){
             });
     
             req.on('response', (res) => {
-                var ip = req.url.hostname;
-                Object.keys(params).forEach( e => {
-                    if(params[e]["ip"] == ip){
-                        console.log('found')
-                    }
-                })
             })
     
             req.on('error', (e) => {
@@ -234,6 +231,13 @@ function isAlive(id, ip){
                         params[e]["isSet"] = false;
                         params[e]["prevProto"] = params[e]["proto"]
                         params[e]["proto"] = 3
+                        request.post('http://127.0.0.1:5000/removeId/'+id,
+                            function (error, response, body) {
+                                if (!error && response.statusCode == 200) {
+                                    console.log(body);
+                                }
+                            }
+                        )
                     }
                 })
                 req.destroy();
@@ -349,7 +353,7 @@ function getNewId(req, res){
 function connectSensor(req, res){
     const id = req.body.id;
     console.log('HTTP connecting a new sensor with id ' + id, params);
-    if(!(id in params)){
+    if(!(id in params) || !params[id].isSet){
         params[id] = {
             ip: req.body.ip,
             lat: req.body.lat, 
@@ -365,6 +369,8 @@ function connectSensor(req, res){
             prevProto: null,
             isSet: false 
         }
+        if( gpsList.findIndex((e) => e[0] === req.body.lat && e[1] === req.body.lon) === -1)
+            gpsList.push([req.body.lat, req.body.lon]);
     }else{
         const data = {
             sampleFrequency: parseInt(params[id].sampleFrequency),
@@ -374,7 +380,7 @@ function connectSensor(req, res){
         }
         params[id].isSet = true
         isAlive(id, params[id].ip)
-        request.post('http://192.168.1.94/'+id,
+        request.post('http://127.0.0.1:5000/newId/'+id,
             function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     console.log(body);
@@ -411,15 +417,14 @@ async function setPingCoap(id, ip){
     params[id]["isSet"] = true;
     if(params[id].prevProto)
         params[id].proto = params[id].prevProto;
-    /*const data = {
-        sampleFrequency: parseInt(params[id].sampleFrequency),
-        gasMin: parseInt(params[id].minGas),
-        gasMax: parseInt(params[id].maxGas),
-        proto: parseInt(params[id].proto)
-    }*/
     console.log("Pings done");
-    //THIS ONLY IF AUTOMATED STARTUP
-    //sendUpdate(data, id);
+    request.post('http://127.0.0.1:5000/newId/'+id,
+            function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    console.log(body);
+                }
+            }
+        );
     
 }
 
@@ -503,6 +508,13 @@ function pingCoap(ip){
       });
 }
 
+function dailyForecast(){
+    scheduler.call(()=> {
+        gpsList.forEach((e) => {
+            forecast(e[0], e[1])
+        });
+    }).everySixHours().run();
+}
 module.exports = {
     postSensor,
     connectSensor,
@@ -511,7 +523,8 @@ module.exports = {
     getSensors,
     getSensorIds,
     setPingMQTT, 
-    getNewId
+    getNewId,
+    dailyForecast
 }
 
 

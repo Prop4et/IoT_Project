@@ -1,7 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser')
 const protocols = require('./protocols')
-const scheduler = require('expressweb-scheduler')
 
 const path = require('path')
 //MQTT
@@ -58,14 +57,10 @@ app.use(function(req, res, next) {
   res.status(404).send("Sorry, that route doesn't exist. Have a nice day :)");
 });
 
-//get value for temperature and humidity daily, that's for the startup (it may happen that i have it more than once in a day when i test this )
-scheduler.call(()=> {
-  //here goes the function
-}).daily().run();
+//get daily avg humidity and temperature
+dailyForecast()
 // start the server in the port 3000 !
 app.listen(8080, '192.168.1.133', function () {
   console.log('App server listening on port 8080.');
-    scheduler.call(()=> {
-      //here goes the function
-    }).daily().run();
+    dailyForecast();
 });

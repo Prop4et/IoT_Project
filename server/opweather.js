@@ -1,11 +1,12 @@
 const request = require('request'); 
 const influx = require('./influx');
-const influxConfig = require('./influxconfig')
+const influxConfig = require('./config').influx
 const influxClient = new influx.InfluxClient(influxConfig.remotehost, influxConfig.port, influxConfig.token, influxConfig.org);
-var API_KEY = '70db7dbca3722a9613cc28ebb4190af7';
+
+const API_KEY = require('./config').ow.API_KEY
 
   
-const forecast = (lat, lon) => { 
+function forecast(lat, lon){ 
   
 var url = 'http://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon='+ lon +'&appid='+API_KEY
   
@@ -14,16 +15,18 @@ var url = 'http://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon='+
             console.log('Unable to connect to Forecast API'); 
         } 
         else { 
+            avgtemp = ((response.body.main.temp_min + response.body.main.temp_max)/2)  - 273.15;
+            avghum = response.body.main.humidity;
+            
+            influxClient.writeOW(lat, lon, "opweather", avgtemp, "temp");
+            influxClient.writeOW(lat, lon, "opweather", avghum, "hum");
 
-            avgtemp = response.body.main.temp - 273.15
-            avghum = response.body.main.humidity
-            console.log(avgtemp.toFixed(2), avghum);
         } 
     })
 } 
-  
-var lat = 44.501; // Indore latitude 
-var lon = 11.350; // Indore longitude 
+//THIS IS FOR TEST  
+var lat = 44.501; // Indoor latitude 
+var lon = 11.350; // Indoor longitude 
   
 // Function call 
 forecast(lat, lon); 

@@ -12,3 +12,4 @@ appunti.txt
 server/prova.html
 analytics/static
 analytics/notebooks
+analytics/__pycache__
