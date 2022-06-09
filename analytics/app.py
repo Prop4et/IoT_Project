@@ -22,8 +22,9 @@ query_api = client.query_api()
 
 @app.route('/newId/<int:id>')
 def newId(id):
-    print('new sensor added with id', id)
-    ids.append(id) #append is atomic
+	print('new sensor added with id', id)
+	ids.append(id) #append is atomic
+	return f'new id added '+id
 
 def create_df(query):
 	result_temp = query_api.query_data_frame(query)
