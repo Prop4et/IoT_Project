@@ -18,9 +18,9 @@
 - [x] Data Analytics
 
 ### Additional Components
-- [ ] Outdoor temperature value from open API Weather
-    - [ ] Store in influx 
-    - [ ] Visualization through Grafana
+- [x] Outdoor temperature value from open API Weather
+    - [x] Store in influx 
+    - [x] Visualization through Grafana
 
 - [x] Telegram bot
 
