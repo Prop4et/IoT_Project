@@ -4,7 +4,7 @@ const protocols = require('./protocols')
 
 const path = require('path')
 //MQTT
-//protocols.initializeMQTT()
+protocols.initializeMQTT()
 
 const portHttp = 8080
 
@@ -34,24 +34,18 @@ app.get("/", (req, res)=>{
   res.sendFile(path.join(__dirname, '/index.html'));
 })
 
-//get parameters
-/*
-this is not used anymore, the esp will receive un update on mqtt whenever
-the dashboard updates them
-app.get('/sensor', http.getSensor);
-*/
-//app.post('/sensor', protocols.connectSensor);
-//app.get('/sensor', protocols.getNewId);
-//app.post('/pingMqtt', protocols.setPingMQTT);
 
-//send avg temp and hum on startup
+app.post('/sensor', protocols.connectSensor);
+app.get('/sensor', protocols.getNewId);
+app.post('/pingMqtt', protocols.setPingMQTT);
+
 
 //set parameters from dashboard
-//app.post('/update-sensor', protocols.postSensor);
+app.post('/update-sensor', protocols.postSensor);
 
-//app.get('/getSensors', protocols.getSensors);
+app.get('/getSensors', protocols.getSensors);
 
-//app.get('/sensorIds', protocols.getSensorIds)
+app.get('/sensorIds', protocols.getSensorIds)
 // Change the 404 message modifing the middleware
 app.use(function(req, res, next) {
   res.status(404).send("Sorry, that route doesn't exist. Have a nice day :)");
@@ -59,7 +53,7 @@ app.use(function(req, res, next) {
 
 //get daily avg humidity and temperature
 // start the server in the port 3000 !
-app.listen(8080, 'localhost', function () {
+app.listen(8080, '192.168.1.133', function () {
   console.log('App server listening on port 8080.');
    //protocols.dailyForecast();
 });
