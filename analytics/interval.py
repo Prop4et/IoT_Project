@@ -20,13 +20,16 @@ class Interval(threading.Thread):
         self.args = args if args is not None else []
         self.kwargs = kwargs if kwargs is not None else {}
         self.event = threading.Event()
+        self.thread = threading.Thread(target=self.run)
+
     def cancel(self) -> None:
-        # Stop timer event
         self.event.set()
-        # Kill thread if event is set
         if self.event.is_set():
             self.join()
 
     def run(self) -> None:
         while not (self.event.is_set() or self.event.wait(self.interval)):
             self.function(*self.args, **self.kwargs)
+
+    def start(self) -> None:
+        self.thread.start()
