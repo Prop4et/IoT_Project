@@ -33,3 +33,7 @@ class Interval(threading.Thread):
 
     def start(self) -> None:
         self.thread.start()
+    
+    def stop(self) -> None:
+        self.event.set()
+        self.thread.join()
