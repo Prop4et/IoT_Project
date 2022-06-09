@@ -514,7 +514,33 @@ function dailyForecast(){
         gpsList.forEach((e) => {
             forecast(e[0], e[1])
         });
-    }).everySixHours().run();
+    }).dailyAt('00:00').run();
+
+    scheduler.call(()=> {
+        gpsList.forEach((e) => {
+            forecast(e[0], e[1])
+        });
+    }).dailyAt('06:00').run();
+
+    scheduler.call(()=> {
+        gpsList.forEach((e) => {
+            forecast(e[0], e[1])
+        });
+    }).dailyAt('12:00').run();
+
+    scheduler.call(()=> {
+        gpsList.forEach((e) => {
+            forecast(e[0], e[1])
+        });
+    }).dailyAt('18:00').run();
+    
+}
+
+//used on server startup (can create duplicates idc)
+function simpleForecast(){
+    gpsList.forEach((e) => {
+        forecast(e[0], e[1])
+    });
 }
 module.exports = {
     postSensor,
@@ -525,7 +551,8 @@ module.exports = {
     getSensorIds,
     setPingMQTT, 
     getNewId,
-    dailyForecast
+    dailyForecast,
+    simpleForecast,
 }
 
 
