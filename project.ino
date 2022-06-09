@@ -30,7 +30,7 @@
 //*********************************SETTINGS**********************************************
 int id_int;
 const float lat = 44.501;
-const float lon = 11.350;
+const float lon = 11.3500;
 int SAMPLE_FREQ = 10000;
 float MIN_GAS_VALUE = 0;
 float MAX_GAS_VALUE = 5000;
@@ -272,7 +272,7 @@ void httpSetup(){
     Serial.println("Post request");
     http.begin("http://192.168.1.133:8080/sensor");
     http.addHeader("Content-Type", "application/json");
-    int httpCode = http.POST("{\"id\":\""+String(id_int)+"\",\"ip\":\""+WiFi.localIP().toString()+"\",\"lat\":\""+String(lat)+"\",\"lon\":\""+String(lon)+"\"}");
+    int httpCode = http.POST("{\"id\":\""+String(id_int)+"\",\"ip\":\""+WiFi.localIP().toString()+"\",\"lat\":\""+String(lat, 3)+"\",\"lon\":\""+String(lon, 3)+"\"}");
 
     // httpCode will be negative on error
     if(httpCode > 0) {
