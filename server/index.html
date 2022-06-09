@@ -482,6 +482,9 @@ select, input{
                             <th>
                                 <h3>SF</h3>
                             </th>
+                            <th>
+                                <h3>To Grafana</h3>
+                            </th>
                           </tr>
                         </thead>
                         <tbody id="sensors-body" style="color:black">
@@ -546,7 +549,9 @@ select, input{
                 return;
 
             for(var id in ids){
-
+                //This kinda works (with some delay)
+                //Problem is that i need to remove (or signal) the rows of the sensor that disconnected in the update too
+                //I hate that i have to do this shit
                 if(!data[ids[id]]["isSet"]){
                     console.log('sensor is not set, probably offline')
                     continue;
@@ -563,7 +568,8 @@ select, input{
                 cell3 = row.insertCell();
                 cell4 = row.insertCell();
                 cell5 = row.insertCell();
-                
+                cell6 = row.insertCell();
+
                 cell1.innerHTML = ids[id];
                 cell2.innerHTML = data[ids[id]]["ip"];
                 if(data[ids[id]]["mqttping"])
@@ -575,7 +581,11 @@ select, input{
                 else
                     cell4.innerHTML = "-"
                 cell5.innerHTML = data[ids[id]]["sampleFrequency"];
-
+                let goGrafana = () => {
+                    window.open('http://192.168.1.133:3000/d/u1ORJBrnz/progetto_iot?orgId='+ids[id]+'1&from=now-1h&to=now%2B2m', '_blank')
+                }
+                cell6.innerHTML = <box-icon name='link-external' onclick="goGrafana()"></box-icon>
+                
             }
 
             //update table rows
