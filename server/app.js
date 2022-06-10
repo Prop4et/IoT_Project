@@ -53,7 +53,7 @@ app.use(function(req, res, next) {
 
 //get daily avg humidity and temperature
 // start the server in the port 3000 !
-app.listen(8080, 'localhost', function () {
+app.listen(8080, '192.168.1.133', function () {
   console.log('App server listening on port 8080.');
-   //protocols.dailyForecast();
+    protocols.dailyForecast();
 });

@@ -32,8 +32,8 @@ int id_int;
 const float lat = 44.501;
 const float lon = 11.350;
 int SAMPLE_FREQ = 10000;
-float MIN_GAS_VALUE = 0;
-float MAX_GAS_VALUE = 5000;
+float MIN_GAS_VALUE = 5;
+float MAX_GAS_VALUE = 15;
 long pingSum = 0; //total rtt of the ping packets
 long timeSend = 0; //time of sending the ping packet
 bool received = true;//received a ping packet or not

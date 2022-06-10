@@ -4,7 +4,7 @@ const { Telegraf } = require('telegraf')
 const influxConfig = require('../server/config').influx
 const botConfig = require('./botconfig')
 
-client  = new InfluxDB({ url: 'http://' + influxConfig.remotehost + ":" + influxConfig.port, token: influxConfig.token })
+client  = new InfluxDB({ url: 'http://' + influxConfig.host + ":" + influxConfig.port, token: influxConfig.token })
 var updateIntervalId = {};
 var alertIntervalId = {};
 bot = new Telegraf(botConfig.token)
