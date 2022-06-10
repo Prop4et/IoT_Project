@@ -28,7 +28,7 @@
     - [ ] Monitor multiple air quality stations at the same time
     - [x] Register new device
     - [x] Config parameters
-    - [ ] Visualize position on a map
+    - [x] Visualize position on a map
     - [x] Access data through grafana
 ## CONTROLLER AND HARDWARE 
 - ESP32 dev module
