@@ -12,19 +12,7 @@ coap.updateTiming(coapTiming);
 
 const config = require('./config').mqtt
 const parser = require('./parser')
-var params = {0: {ip: '192.168.1.0',
-    lat: 44.501, // Indoor latitude 
-    lon: 11.350,
-    mqttping: 205,
-    coapping: 100,
-    mqttratio: 1,
-    coapratio: 1,
-    sampleFrequency: 10000,
-    gasMin: 5,
-    gasMax: 15,
-    proto: 1, 
-    prevProto: null,
-    isSet: true }}
+var params = {}
 var intervals = {}
 var aliveInterval = {}
 var gpsList= []
