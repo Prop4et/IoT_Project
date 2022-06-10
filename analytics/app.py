@@ -28,9 +28,9 @@ def newId(id):
 	print('new sensor added with id', id)
 	for i in range(0, len(ids)):
 		if ids[i] == id:
-			return f'already in id '+str(id)
+			return f'[PRED] already in id '+str(id)
 	ids.append(id) #append is atomic
-	return f'new id added '+str(id)
+	return f'[PRED] new id added '+str(id)
 
 @app.route('/removeId/<int:id>', methods = ['POST'])
 def removeId(id):
@@ -38,7 +38,7 @@ def removeId(id):
 	for i in range(0, len(ids)):
 		if ids[i] == id:
 			ids.pop(i)
-	return f'removed id '+str(id)
+	return f'[PRED] removed id '+str(id)
 
 def create_df(query):
 	result_temp = query_api.query_data_frame(query)
@@ -100,4 +100,4 @@ def predict(sensorId, window):
 			window = 15
 		intervalsId[sensorId][bucket] = Interval(window-15, prediction, [bucket, window, sensorId])
 		intervalsId[sensorId][bucket].start()
-	return f'started prediction for id ' + str(sensorId)
+	return f'[PRED] started prediction for id ' + str(sensorId)
