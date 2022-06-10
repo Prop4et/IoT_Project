@@ -7,8 +7,10 @@ const influxConfig = require('./config').influx
 const influxClient = new influx.InfluxClient(influxConfig.remotehost, influxConfig.port, influxConfig.token, influxConfig.org);
 const topicMqtt = 'sensor/';
 const subtopics = ['info', 'temp_hum', 'MQ2', 'PPM']
-//everything here should become a send to the influx db
+
+//function to divide the topics
 const matchtopic = (element) => element === t;
+//parser for each topic
 const parseInfo = (data, lat, lon) => {
     console.log("\tID: " + data['id'] + " Signal: " +data['RSS'] + "dbm");
     var id = data['id'];
@@ -48,6 +50,7 @@ const parsePPM = (data, lat, lon) => {
 
     };
 
+//array of functions for parsing
 const fnArr = [parseInfo, parseTempHum, parseMQ2, parsePPM]
 
 function parse(msg, topic, lat, lon, proto){

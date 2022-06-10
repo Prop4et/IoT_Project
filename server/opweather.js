@@ -5,7 +5,7 @@ const influxClient = new influx.InfluxClient(influxConfig.remotehost, influxConf
 
 const API_KEY = require('./config').ow.API_KEY
 
-  
+//asks openweather for temperature (max and min and computes the average) and humidity  
 function forecast(lat, lon){ 
   
 var url = 'http://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon='+ lon +'&appid='+API_KEY
