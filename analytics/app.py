@@ -82,6 +82,16 @@ def prediction(bucket, window, sensorId):
 		predictions = train_and_predict(df, window)
 		writeDB(predictions, df.iloc[len(df)-1]['Time'], sensorId, bucket)
 
+@app.route('/stoppredict/<int:sensorId>', methods=['POST'])
+def stoppredict(sensorId):
+	if sensorId not in ids:
+		return f'id ' + str(sensorId) + ' not registered'
+	if sensorId not in intervalsId:
+		return f'id ' + str(sensorId) + ' was not predicting'
+	for bucket in buckets:
+    			intervalsId[sensorId][bucket].stop()
+		
+
 @app.route('/predict/<int:sensorId>/<int:window>', methods=['POST'])
 def predict(sensorId, window):
     #no sensor found with that id
@@ -98,6 +108,6 @@ def predict(sensorId, window):
 	for bucket in buckets:
 		if window < 15:
 			window = 15
-		intervalsId[sensorId][bucket] = Interval(window-15, prediction, [bucket, window, sensorId])
+		intervalsId[sensorId][bucket] = Interval(window-5, prediction, [bucket, window, sensorId])
 		intervalsId[sensorId][bucket].start()
 	return f'[PRED] started prediction for id ' + str(sensorId)
