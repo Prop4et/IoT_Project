@@ -34,7 +34,7 @@
             --primary-color: #695CFE;
             --primary-color-light: #F6F5FF;
             --toggle-color: #DDD;
-            --text-color: #707070;
+            --text-color: #60019b;
             --navbar-width: 88px;
             /* ====== Transition ====== */
             --tran-03: all 0.2s ease;
@@ -273,6 +273,7 @@
             left: calc(var(--navbar-width) + 88px);
             height: 100vh;
             transition: var(--tran-05);
+            width: 90%;
         }
         .home .text{
             font-size: 30px;
@@ -281,20 +282,10 @@
             padding: 12px 60px;
         }
 
-        .home .container{
-            margin-right: 3em;
-        }
-
         .sidebar.close ~ .home{
             left: 78px;
             height: 100vh;
             width: calc(100% - 78px);
-        }
-
-        table{
-            margin-top:100px;
-            z-index: 10;
-            width: 80%;
         }
 
         .sidebar.close ~ .container{
@@ -302,6 +293,8 @@
         }
 
         .container{
+            
+            overflow: hidden;
             padding-left: 60px;
             transition: var(--tran-05);
         }
@@ -374,11 +367,57 @@
         transform: scale(1);
         }
 
+        /*MAP*/
         #map { 
             width: auto;
             height: 80vh; 
         }
 
+        /*RIGHT SIDEBAR*/
+        #sidebar {
+            display: block;
+            width: 285px;
+            height: 100%;
+            max-width: 100%;
+            float: right;
+            padding:0px 30px;
+        }
+
+        .sidebar-wrapper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .sidebar-table {
+            position: absolute;
+            width: 100%;
+            height: 73vh;
+            top: 50px;
+            bottom: 0px;
+            overflow: hidden;
+        }
+
+        .panel-title {
+            font-size:25px;
+            color:#60019b;
+            font-weight: 88;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .feature-row{
+            margin-bottom: 10px;
+            font-size:16px;
+            color:black;
+            font-weight: 40;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        @media (max-width: 767px){
+            #sidebar {
+                display: none;
+            }
+        }
     </style>
     </head>
     <body>
@@ -425,6 +464,21 @@
                 <div style="text-align: center; margin-top:0"> IoT-Home-Monitoring </div>
             </div>
             <div class="container">
+                <div id="sidebar">
+                    <div class="sidebar-wrapper">
+                      <div class="panel panel-default" id="features">
+                        <div class="panel-heading">
+                          <h3 class="panel-title "> Sensor list
+                        </div>
+                        
+                        <div class="sidebar-table">
+                          <table class="table table-hover" id="feature-list">
+                             <tbody class="list" id="table-body"></tbody>
+                          </table> 
+                        </div>
+                      </div>
+                    </div>
+                </div>
                 <div id="map" class="mapclass"></div>
             </div>
         
@@ -462,20 +516,60 @@
                 ids.forEach((id) => {
                     if(!(id in markers)){
                         markers[id] = L.marker([data[id].lat, data[id].lon]).addTo(map);
-                        var link = $('<a href="#" class="speciallink"><b> Sensor: '+id+'</b>go to grafana</a>').click(function() {
+                        var link = $('<a href="#" class="speciallink"><b> Sensor: '+id+'</b> <i class="bx bx-link-external" title="Go to grafana dashboard"></i></a>').click(function() {
                             window.open('http://192.168.1.133:3000/d/u1ORJBrnz/progetto_iot?orgId='+id+'&from=now-1h&to=now%2B2m', '_blank');
                         })[0];
                         markers[id].bindPopup(link);
+                        markers[id].classList = "pointer"
+                        markers[id].addEventListener('click', () => {
+                            
+                        })
 
+                        markers[id].addEventListener('mouseover', () => {
+                            tableRow = document.getElementById('row-id'+id)
+                            tableRow.style.color = "#60019b";
+                            tableRow.style.background= "#c791e9";
+                        })
+
+                        markers[id].addEventListener('mouseout', () => {
+                            tableRow = document.getElementById('row-id'+id);
+                            tableRow.style.color = "black";
+                            tableRow.style.background= "rgba(0, 0, 0, 0)";
+
+                        })
+                        updateTable(id, data[id])
                     }
-
-                    
                 })
                 
             })
         }
 
-        setInterval(updateInterface, 5000);;
+        const updateTable = (id, sensor) => {
+            tbody = document.getElementById('table-body');
+            var row = tbody.insertRow();
+            row.id = "row-id"+id
+            row.className = "feature-row"
+            row.innerHTML = 'Sensor '+id+' <br> on protocol: ' + (sensor.proto === 1 ? 'MQTT' : sensor.proto === 2 ? 'CoAP' : 'pinging')  +'<br> with sf ' + sensor.sampleFrequency+'<br>go grafana <i class="bx bx-link-external" id=link-id'+id+'></i>';
+            row.addEventListener('click', () =>{
+                map.setView([sensor.lat, sensor.lon], 18);
+            })
+            var linkgrafana = document.getElementById('link-id'+id)
+            linkgrafana.addEventListener('click', () =>{
+                window.open('http://192.168.1.133:3000/d/u1ORJBrnz/progetto_iot?orgId='+id+'&from=now-1h&to=now%2B2m', '_blank')
+            })
+            row.addEventListener('mouseover', () => {
+                tableRow = document.getElementById('row-id'+id)
+                tableRow.style.color = "#60019b";
+            })
+
+            row.addEventListener('mouseout', () => {
+                tableRow = document.getElementById('row-id'+id);
+                tableRow.style.color = "black";
+            })
+            tbody.appendChild(row);
+        }
+
+        setInterval(updateInterface, 5000);
 
     </script>
 </html>
