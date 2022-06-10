@@ -290,6 +290,13 @@ table{
     width: 80%;
 }
 
+.sidebar-table {
+  position: absolute;
+  width: 100%;
+  bottom: 0px;
+  overflow: auto;
+}
+
 .sidebar.close ~ .container{
     padding-left: 60px;
 }
@@ -501,15 +508,14 @@ select, input{
     
     
     <script defer>
-    window.onload = () => updateInterface();
+    listId = []
+    window.onload = () => {updateSelector(); updateInterface()};
     const body = document.querySelector('body'),
     sidebar = body.querySelector('nav'),
     toggle = body.querySelector(".toggle"),
     searchBtn = body.querySelector(".search-box"),
     modeSwitch = body.querySelector(".toggle-switch"),
     modeText = body.querySelector(".mode-text");
-
-    var updateTime = 5000;
 
     toggle.addEventListener("click" , () =>{
         sidebar.classList.toggle("close");
@@ -529,8 +535,29 @@ select, input{
     
     const selector = document.getElementById('id');
     const sensorbody = document.getElementById("sensors-body");
-    updateBtn.addEventListener("click", (e) => updateInterface());
+    updateBtn.addEventListener("click", (e) => {updateSelector();  updateInterface()});
     sendBtn.addEventListener("click", (e) => location.reload());
+
+    const updateSelector = () => {
+        $.get("getSensors", function (data) {
+            var ids = Object.keys(data);
+            ids.forEach((id) =>{
+                if(data[id][isSet])
+                    if(listId.findIndex((e) => e === id) === -1){
+                        ids.push(id)
+                        var option = document.createElement("option");
+                        option.value = id;
+                        option.innerHTML = id;
+                        selector.appendChild(option);
+                    }
+            })
+        });
+    }
+
+    const updateInterfaceTimer = () => {
+
+    }
+
     const updateInterface = () => {
         console.log("update");
         $.get("getSensors", function (data) {
@@ -538,19 +565,19 @@ select, input{
             var childSelector = selector.lastElementChild;
             var childTable = sensorbody.lastElementChild;
             //remove all the children
-            while(childSelector){
+            /*while(childSelector){
                 selector.removeChild(childSelector);
                 childSelector = selector.lastElementChild;
-            }
+            }*/
             while(childTable){
                 sensorbody.removeChild(childTable);
                 childTable = sensorbody.lastElementChild;
             }
 
-            var option = document.createElement("option");
+            /*var option = document.createElement("option");
             option.value = -1;
             option.innerHTML = "-";
-            selector.appendChild(option);
+            selector.appendChild(option);*/
 
             if(ids == undefined || ids == null || ids.length === 0)
                 return;
@@ -564,10 +591,10 @@ select, input{
                     continue;
                 }
                 //update selector for the ids
-                var option = document.createElement("option");
+                /*var option = document.createElement("option");
                 option.value = ids[id];
                 option.innerHTML = ids[id];
-                selector.appendChild(option);
+                selector.appendChild(option);*/
                 //update sensors row
                 var row = sensorbody.insertRow();
                 cell1 = row.insertCell();
@@ -594,7 +621,10 @@ select, input{
         })
 
     }
- 
+    
+    setInterval(updateSelector, 5000);
+    setInterval(updateInterface, 5000);
+
     </script>
 
 </body>
