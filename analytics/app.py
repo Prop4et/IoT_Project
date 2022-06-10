@@ -85,11 +85,13 @@ def prediction(bucket, window, sensorId):
 @app.route('/stoppredict/<int:sensorId>', methods=['POST'])
 def stoppredict(sensorId):
 	if sensorId not in ids:
-		return f'id ' + str(sensorId) + ' not registered'
+		return f'sensor ' + str(sensorId) + ' not registered for prediction'
 	if sensorId not in intervalsId:
-		return f'id ' + str(sensorId) + ' was not predicting'
+		return f'sensor ' + str(sensorId) + ' was not predicting'
 	for bucket in buckets:
-    			intervalsId[sensorId][bucket].stop()
+				intervalsId[sensorId][bucket].stop()
+	return f'prediction sensor ' + str(sensorId) + ' stopped'
+	
 		
 
 @app.route('/predict/<int:sensorId>/<int:window>', methods=['POST'])
