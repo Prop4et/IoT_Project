@@ -30,7 +30,7 @@
 //*********************************SETTINGS**********************************************
 int id_int;
 const float lat = 44.501;
-const float lon = 11.3500;
+const float lon = 11.350;
 int SAMPLE_FREQ = 10000;
 float MIN_GAS_VALUE = 0;
 float MAX_GAS_VALUE = 5000;

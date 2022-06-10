@@ -17,7 +17,7 @@ intervalsId = {}
 
 fd =  open('../server/config.json', 'r')
 config = json.load(fd)
-client =  InfluxDBClient(url='http://'+config["influx"]["remotehost"]+':'+config["influx"]["port"], token=config["influx"]["token"], org=config["influx"]["org"], debug=False)
+client =  InfluxDBClient(url='http://'+config["influx"]["host"]+':'+config["influx"]["port"], token=config["influx"]["token"], org=config["influx"]["org"], debug=False)
 fd.close()
 
 write_api = client.write_api(write_options=SYNCHRONOUS)

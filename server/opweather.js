@@ -1,7 +1,7 @@
 const request = require('request'); 
 const influx = require('./influx');
 const influxConfig = require('./config').influx
-const influxClient = new influx.InfluxClient(influxConfig.remotehost, influxConfig.port, influxConfig.token, influxConfig.org);
+const influxClient = new influx.InfluxClient(influxConfig.host, influxConfig.port, influxConfig.token, influxConfig.org);
 
 const API_KEY = require('./config').ow.API_KEY
 
