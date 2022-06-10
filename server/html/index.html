@@ -471,7 +471,7 @@ select, input{
                               <h3>Sensor ID</h3>
                             </th>
                             <th>
-                                <h3>IP</h3>
+                                <h3>ADDRESS</h3>
                             </th>
                             <th>
                                 <h3>MQTT</h3>
@@ -482,7 +482,7 @@ select, input{
                                 <h5>ping | ratio</h5>
                             </th>
                             <th>
-                                <h3>SF</h3>
+                                <h3>COMMS</h3>
                             </th>
                           </tr>
                         </thead>
@@ -586,7 +586,7 @@ select, input{
                     cell4.innerHTML = data[ids[id]]["coapping"] + " | " +  data[ids[id]]["coapratio"];
                 else
                     cell4.innerHTML = "-"
-                cell5.innerHTML = data[ids[id]]["sampleFrequency"];
+                cell5.innerHTML = data[ids[id]]["sampleFrequency"]+"</br>"+data[ids[id]]["proto"];
                 
             }
 
