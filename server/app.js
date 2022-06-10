@@ -4,7 +4,7 @@ const protocols = require('./protocols')
 
 const path = require('path')
 //MQTT
-protocols.initializeMQTT()
+//protocols.initializeMQTT()
 
 const portHttp = 8080
 
@@ -27,13 +27,13 @@ app.use(express.static(__dirname + "/public", {
   maxAge: "30d"
 }));
 
-let clients = []
-// Http API
-// default API for setup tool
+//pages routes
 app.get("/", (req, res)=>{
-  res.sendFile(path.join(__dirname, '/index.html'));
+  res.sendFile(path.join(__dirname, '/html/index.html'));
 })
-
+app.get('/map', (request, response) =>{
+  response.sendFile(path.join(__dirname, '/html/map.html'))
+})
 
 app.post('/sensor', protocols.connectSensor);
 app.get('/sensor', protocols.getNewId);
@@ -53,7 +53,7 @@ app.use(function(req, res, next) {
 
 //get daily avg humidity and temperature
 // start the server in the port 3000 !
-app.listen(8080, '192.168.1.133', function () {
+app.listen(8080, 'localhost', function () {
   console.log('App server listening on port 8080.');
    //protocols.dailyForecast();
 });
