@@ -512,32 +512,37 @@
             console.log("update");
             $.get("getSensors", function (data) {
                 var ids = Object.keys(data);
-                
                 ids.forEach((id) => {
-                    if(!(id in markers)){
-                        markers[id] = L.marker([data[id].lat, data[id].lon]).addTo(map);
-                        var link = $('<a href="#" class="speciallink"><b> Sensor: '+id+'</b> <i class="bx bx-link-external" title="Go to grafana dashboard"></i></a>').click(function() {
-                            window.open('http://192.168.1.133:3000/d/u1ORJBrnz/progetto_iot?orgId='+id+'&from=now-1h&to=now%2B2m', '_blank');
-                        })[0];
-                        markers[id].bindPopup(link);
-                        markers[id].classList = "pointer"
-                        markers[id].addEventListener('click', () => {
-                            
-                        })
+                    if(data[id].isSet){
+                        if(!(id in markers)){
+                            markers[id] = L.marker([data[id].lat, data[id].lon]).addTo(map);
+                            var link = $('<a href="#" class="speciallink"><b> Sensor: '+id+'</b> <i class="bx bx-link-external" title="Go to grafana dashboard"></i></a>').click(function() {
+                                window.open('http://192.168.1.133:3000/d/u1ORJBrnz/progetto_iot?orgId='+id+'&from=now-1h&to=now%2B2m', '_blank');
+                            })[0];
+                            markers[id].bindPopup(link);
+                            markers[id].classList = "pointer"
+                            markers[id].addEventListener('click', () => {
+                                
+                            })
 
-                        markers[id].addEventListener('mouseover', () => {
-                            tableRow = document.getElementById('row-id'+id)
-                            tableRow.style.color = "#60019b";
-                            tableRow.style.background= "#c791e9";
-                        })
+                            markers[id].addEventListener('mouseover', () => {
+                                tableRow = document.getElementById('row-id'+id)
+                                tableRow.style.color = "#60019b";
+                                tableRow.style.background= "#c791e9";
+                            })
 
-                        markers[id].addEventListener('mouseout', () => {
-                            tableRow = document.getElementById('row-id'+id);
-                            tableRow.style.color = "black";
-                            tableRow.style.background= "rgba(0, 0, 0, 0)";
+                            markers[id].addEventListener('mouseout', () => {
+                                tableRow = document.getElementById('row-id'+id);
+                                tableRow.style.color = "black";
+                                tableRow.style.background= "rgba(0, 0, 0, 0)";
 
-                        })
-                        updateTable(id, data[id])
+                            })
+                            updateTable(id, data[id])
+                        }
+                    }else{
+                        if(id in markers){
+                            map.removeLayer(markers[id])
+                        }
                     }
                 })
                 
@@ -567,6 +572,12 @@
                 tableRow.style.color = "black";
             })
             tbody.appendChild(row);
+        }
+
+        const removeFromTable = (id) => {
+            var tbody = document.getElementById('table-body');
+            var row = document.getElementById('row-id'+id)
+            tbody.removeChild(row);
         }
 
         setInterval(updateInterface, 5000);

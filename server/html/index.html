@@ -542,60 +542,43 @@ select, input{
         $.get("getSensors", function (data) {
             var ids = Object.keys(data);
             ids.forEach((id) =>{
-                if(data[id][isSet])
+                if(data[id][isSet]){
                     if(listId.findIndex((e) => e === id) === -1){
                         ids.push(id)
                         var option = document.createElement("option");
                         option.value = id;
                         option.innerHTML = id;
+                        option.id = 'opt'+id
                         selector.appendChild(option);
                     }
+                }else{
+                    var option = document.getElementById('opt'+id)
+                    selector.removeChild(option)
+                }
             })
         });
     }
 
-    const updateInterfaceTimer = () => {
-
-    }
-
     const updateInterface = () => {
-        console.log("update");
         $.get("getSensors", function (data) {
             var ids = Object.keys(data);
             var childSelector = selector.lastElementChild;
             var childTable = sensorbody.lastElementChild;
-            //remove all the children
-            /*while(childSelector){
-                selector.removeChild(childSelector);
-                childSelector = selector.lastElementChild;
-            }*/
+            
             while(childTable){
                 sensorbody.removeChild(childTable);
                 childTable = sensorbody.lastElementChild;
             }
 
-            /*var option = document.createElement("option");
-            option.value = -1;
-            option.innerHTML = "-";
-            selector.appendChild(option);*/
-
             if(ids == undefined || ids == null || ids.length === 0)
                 return;
 
             for(var id in ids){
-                //This kinda works (with some delay)
-                //Problem is that i need to remove (or signal) the rows of the sensor that disconnected in the update too
-                //I hate that i have to do this shit
                 if(!data[ids[id]]["isSet"]){
                     console.log('sensor is not set, probably offline')
                     continue;
                 }
-                //update selector for the ids
-                /*var option = document.createElement("option");
-                option.value = ids[id];
-                option.innerHTML = ids[id];
-                selector.appendChild(option);*/
-                //update sensors row
+                
                 var row = sensorbody.insertRow();
                 cell1 = row.insertCell();
                 cell2 = row.insertCell();
