@@ -17,7 +17,7 @@ var intervals = {}
 var aliveInterval = {}
 var gpsList= []
 // ----- MQTT setup -----
-const hostMqtt = config.host; // Broker Mosquitto, should i make mine?
+const hostMqtt = config.host; 
 const portMqtt = config.port; // listen port for MQTT
 const clientId = `mqtt_${Math.random().toString(16).slice(3)}`;
 const connectUrl = `mqtt://${hostMqtt}:${portMqtt};` // url for connection
@@ -86,16 +86,6 @@ function sendUpdate(data, id){
       })
     return true;
 }
-
-function getSensors(req, res){
-    res.json(params);
-}
-
-function getSensorIds(req, res){
-    res.json({'ids': Object.keys(params)})
-}
-
-
 
 //-----------------------------------CoAP-------------------------------
 function coapReq(id, ip, sf){
@@ -366,22 +356,43 @@ function postSensor(req, res){
 
 }
 
-ids = {}
+var ids = {}
+var requests = []
 
+function getId(req, res){
+    var mac = req.body.mac
+    var id = req.body.id
+    if(!(mac in ids)){//otherwise it means i assigned it and skipped somhow
+        var v = Object.values(ids)
+        if(v.findIndex( (e) => e === id) === -1 ){//id not assigned
+            requests = requests.filter(e => e !== mac);
+            ids[mac] = id;
+            macResponses[mac].json({"id": id});
+            macResponses[mac].destroy();
+            macResponses[mac] = null;
+            res.sendStatus(200);
+            return;
+        }
+    }
+    res.sendStatus(400);
+
+}
+
+macResponses = {}
 function getNewId(req, res){
     var query = JSON.parse(JSON.stringify(req.query));
-    if(query.mac in ids)
+    var mac = query.mac
+    if(mac in ids)
         res.json({"id": ids[query.mac]})
     else{
-        var id = Object.keys(ids).length
-        ids[query.mac] = id;
-        res.json({"id": id});
+        requests.push(mac);
+        macResponses[mac] = res;
     }
 }
 
 function connectSensor(req, res){
     const id = req.body.id;
-    console.log('HTTP connecting a new sensor with id ' + id, params);
+    console.log('HTTP connecting a new sensor with id ' + id);
     //the sensor is new or was completely
     if(!(id in params) || !params[id]["isSet"]){
         params[id] = {
@@ -607,27 +618,41 @@ function dailyForecast(){
         gpsList.forEach((e) => {
             opweather.forecast(e[0], e[1])
         });
-    }).dailyAt('00:00').run();
+    }).dailyAt('23:59').run();
 
     scheduler.call(()=> {
         gpsList.forEach((e) => {
             opweather.forecast(e[0], e[1])
         });
-    }).dailyAt('06:00').run();
+    }).dailyAt('05:59').run();
 
     scheduler.call(()=> {
         gpsList.forEach((e) => {
             opweather.forecast(e[0], e[1])
         });
-    }).dailyAt('12:00').run();
+    }).dailyAt('11:59').run();
 
     scheduler.call(()=> {
         gpsList.forEach((e) => {
             opweather.forecast(e[0], e[1])
         });
-    }).dailyAt('18:00').run();
+    }).dailyAt('17:59').run();
     
 }
+
+//Functions to communicate with the frontend
+function getSensors(req, res){
+    res.json(params);
+}
+
+function getSensorIds(req, res){
+    res.json({'ids': Object.keys(params)})
+}
+
+function getRequests(req, res){
+    res.json(requests);
+}
+
 
 module.exports = {
     postSensor,
@@ -641,6 +666,8 @@ module.exports = {
     dailyForecast,
     postStartPrediction,
     postStopPrediction,
+    getId,
+    getRequests
 }
 
 
