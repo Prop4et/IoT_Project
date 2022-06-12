@@ -7,7 +7,7 @@
 
 - [x] Data proxy
     - [x] MQTT 
-    - [x] CoAP -> TODO: fix pending requests when changing algorithm
+    - [x] CoAP 
     - [x] Ping
     - [x] Runtime change
     - [x] InfluxDB write integration
@@ -24,8 +24,8 @@
 
 - [x] Telegram bot
 
-- [ ] Web dashboard
-    - [ ] Monitor multiple air quality stations at the same time
+- [x] Web dashboard
+    - [x] Monitor multiple air quality stations at the same time
     - [x] Register new device
     - [x] Config parameters
     - [x] Visualize position on a map
