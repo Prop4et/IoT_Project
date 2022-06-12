@@ -5,7 +5,7 @@ const protocols = require('./protocols')
 const path = require('path');
 const { default: swal } = require('sweetalert');
 //MQTT
-protocols.initializeMQTT()
+//protocols.initializeMQTT()
 
 const portHttp = 8080
 
@@ -37,8 +37,10 @@ app.get('/map', (request, response) =>{
 })
 
 //sensor setup routes
-app.post('/sensor', protocols.connectSensor);
 app.get('/sensor', protocols.getNewId);
+app.post('/sensor', protocols.connectSensor);
+app.post('/id', protocols.getId);
+app.get('/requests', protocols.getRequests);
 app.post('/pingMqtt', protocols.setPingMQTT);
 
 
@@ -57,7 +59,7 @@ app.use(function(req, res, next) {
 
 
 // start the server in the port 3000 !
-app.listen(8080, '192.168.1.133', function () {
+app.listen(8080, 'localhost', function () {
   console.log('App server listening on port 8080.');
     //get daily forecast from openweather
     protocols.dailyForecast();
