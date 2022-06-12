@@ -25,6 +25,26 @@
     font-family: 'Poppins', sans-serif;
 }
 
+@keyframes blinking {
+    0% {
+        background-color: #FFF;
+        border: 1px solid #000;
+    }
+    50% {
+        background-color: rgb(221, 113, 113);
+        border: 1px solid rgb(138, 14, 14);
+    }
+    1000% {
+        background-color: #FFF;
+        border: 1px solid #000;
+    }
+}
+
+.blink{
+    border: 1px solid #000;
+    animation: blinking 3s infinite linear;
+}
+
 :root{
     /* ===== Colors ===== */
     --body-color: #E4E9F7;
@@ -310,6 +330,8 @@ table{
 }
 
 th, td{
+    font-size: 15px;
+    font-weight: 88;
     text-align: left;
     width: 42em;
     margin-right: 20%;
@@ -347,7 +369,7 @@ select, input{
   transition: all 0.3s ease;
   position: relative;
   display: inline-block;
-  margin-top: 100px;
+  margin-top: 50px;
 }
 
 
@@ -391,6 +413,14 @@ select, input{
     position: relative;
     float: right;
     width: 50%;
+}
+.title-table{
+    font-weight: bold;
+    font-size: 25px;
+    text-align: center;
+    width: 42em;
+    margin-right: 20%;
+    color: #60019b;
 }
     </style>
 </head>
@@ -444,21 +474,22 @@ select, input{
                 <div class="col-left">
                     <table class="table">
                         <thead>
+                            <tr><th colspan="5" class = "title-table">Setup</th></tr> 
                         <tr>
                             <th>
-                                <h3>Sensor ID</h3> <!-- qua ci mettiamo una select -->
+                                Sensor ID <!-- qua ci mettiamo una select -->
                             </th>
                             <th>
-                                <h3>Protocol</h3> <!-- qua ci mettiamo una select -->
+                                Protocol <!-- qua ci mettiamo una select -->
                             </th>
                             <th>
-                                <h3>Min gas value</h3>
+                                Min gas value
                             </th>
                             <th>
-                                <h3>Max gas value</h3>
+                                Max gas value
                             </th>
                             <th>
-                                <h3>Sample F [ms]</h3>
+                                Sample F [ms]
                             </th>
                             
                         </tr>
@@ -479,9 +510,9 @@ select, input{
                                     <option value="3" id="coapopt">ping</option>
                                 </select>
                             </td>
-                            <td> <input type="text"  placeholder="1" min="1" name="gasMin" id="gasMin"> </td>
-                            <td> <input type="text"  placeholder="15" min="2" name="gasMax" id="gasMax"> </td>
-                            <td> <input type="text"  placeholder="2000" min="2000"  name="sampleFrequency" id="sf"> </td>
+                            <td> <input type="number"  placeholder="1" min="1" name="gasMin" id="gasMin"> </td>
+                            <td> <input type="number"  placeholder="15" min="2" name="gasMax" id="gasMax"> </td>
+                            <td> <input type="number"  placeholder="2000" min="2000"  name="sampleFrequency" id="sf"> </td>
                             <td> <i class='bx bx-link-external' id="link-grafana" title="Go to grafana dashboard"></i> </td>
                         </tr>
                         </tbody>
@@ -490,12 +521,14 @@ select, input{
                         
                     <table class="table">
                         <thead>
+                        <tr><th colspan="2" class = "title-table">Prediction Values</th></tr> 
+
                         <tr>
                             <th>
-                                <h3>Sensor ID</h3> <!-- qua ci mettiamo una select -->
+                                Sensor ID <!-- qua ci mettiamo una select -->
                             </th>
                             <th>
-                                <h3>Prediction window [s]</h3> <!-- qua ci mettiamo una select -->
+                                Prediction window [s] <!-- qua ci mettiamo una select -->
                             </th>
                             
                         </tr>
@@ -508,7 +541,7 @@ select, input{
                                     <option >-</option>
                                 </select>
                             </td>
-                            <td> <input type="text"  placeholder="30" min="15" name="window" id="window-pred"> </td>
+                            <td> <input type="number"  placeholder="30" min="15" name="window" id="window-pred"> </td>
                         </tr>
                         </tbody>
                     </table>
@@ -516,31 +549,64 @@ select, input{
                     <button  class="custom-btn btn-10" id="stop-pred-btn" formaction="/stop-prediction">Stop prediction</button>
 
                 </div> <!-- end col -->
+
+
+                <div class="col-right">
+                    <table class="table" id="newId">
+                        <thead>
+                        <tr><th colspan="2" class = "title-table">New Sensor</th></tr> 
+
+                          <tr>
+                            <th>
+                              Sensor <br> MAC
+                            </th>
+                            <th>
+                                Define ID
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody id="mac-body" style="color:black">
+                            <tr>
+                                <td> 
+                                    <select style='width: 150px;' name="mac" id="mac"> 
+                                        <option >-</option>
+                                    </select>
+                                </td>
+                                <td> <input type="number"  placeholder="0" min="0" name="sensorMac" id="sensorMac"> </td>
+                            </tr>
+                        </tbody>
+                      </table>
+                    <button class="custom-btn btn-10" id="mac-btn">Assign ID</button>
+
+                </div>
+            </div> <!-- end row -->
+
                 <div class="col-right">
                     <table class="table" id="sensors">
                         <thead>
-                          <tr>
-                            <th>
-                              <h3>Sensor ID</h3>
-                            </th>
-                            <th>
-                                <h3>IP</h3>
-                            </th>
-                            <th>
-                                <h3>MQTT</h3>
-                                <h5>ping | ratio</h5>
-                            </th>
-                            <th>
-                                <h3>CoAP</h3>
-                                <h5>ping | ratio</h5>
-                            </th>
-                            <th>
-                                <h3>Comms</h3>
-                            </th>
-                            <th>
-                                <h3>Predictions</h3>
-                            </th>
-                          </tr>
+                            <tr><th colspan="5" class = "title-table">Online sensors</th></tr> 
+                            <tr>
+                                <th>
+                                Sensor ID
+                                </th>
+                                <th>
+                                    IP
+                                </th>
+                                <th>
+                                    MQTT
+                                    <h5>ping | ratio</h5>
+                                </th>
+                                <th>
+                                    CoAP
+                                    <h5>ping | ratio</h5>
+                                </th>
+                                <th>
+                                    Comms
+                                </th>
+                                <th>
+                                    Predictions
+                                </th>
+                            </tr>
                         </thead>
                         <tbody id="sensors-body" style="color:black">
                         
@@ -556,7 +622,7 @@ select, input{
     
     <script defer>
     listId = []
-    window.onload = () => {updateSelector(); updateInterface()};
+    window.onload = () => {updateSelector(); updateInterface(); updateNewRequests()};
     const body = document.querySelector('body'),
     sidebar = body.querySelector('nav'),
     toggle = body.querySelector(".toggle"),
@@ -570,12 +636,13 @@ select, input{
 
     //const updateBtn = document.getElementById('update-btn');
     const sendBtn = document.getElementById('send-btn');
-    const startPredBtn = document.getElementById("start-pred-btn")
-    const stopPredBtn = document.getElementById("stop-pred-btn")
+    const startPredBtn = document.getElementById("start-pred-btn");
+    const stopPredBtn = document.getElementById("stop-pred-btn");
     const grafana = document.getElementById('link-grafana');
     const selector = document.getElementById('id');
-    const selector_pred = document.getElementById('id-pred')
+    const selector_pred = document.getElementById('id-pred');
     const sensorbody = document.getElementById("sensors-body");
+    const selector_mac = document.getElementById('mac');
     
 
     grafana.addEventListener("click", () => {
@@ -785,7 +852,6 @@ select, input{
     const updateInterface = () => {
         $.get("getSensors", function (data) {
             var ids = Object.keys(data);
-            var childSelector = selector.lastElementChild;
             var childTable = sensorbody.lastElementChild;
             
             while(childTable){
@@ -837,10 +903,80 @@ select, input{
         })
 
     }
+
+    listMac = []
+    const updateNewRequests = () => {
+        $.get("requests", function (data) {
+            var macs = data;
+            var flagNew = false;
+            macs.forEach((mac) =>{
+                if(listMac.findIndex((e) => e === mac) === -1){
+                    listMac.push(mac)
+                    var option = document.createElement("option");
+                    option.value = mac;
+                    option.innerHTML = mac;
+                    option.id = 'macopt'+mac
+                    selector_mac.appendChild(option);
+                    flagNew = true;
+                }
+            })
+            if(flagNew){
+                selector_mac.classList = 'blink'
+            }
+        });
+    } 
+
+
+    $('#mac-btn').click(function() {
+        var mac = $('#mac option:selected').val();
+        if(mac === '-' || mac === -1){
+            Swal.fire({
+                title: 'Error!',
+                text: 'You need to select a valid MAC address',
+                icon: 'error',
+                confirmButtonText: 'Ok'
+            });
+            return;
+        }
+        var newId = $('#sensorMac').val();
+        if(!newId || isNaN(newId) || newId < 0){
+            Swal.fire({
+                title: 'Error!',
+                text: 'Need to select a valid id (numeric)',
+                icon: 'error',
+                confirmButtonText: 'Ok'
+            });
+            return;
+        }
+
+        $.post('id',{
+            mac: mac,
+            id: newId
+        },(data, status) => {
+            var opt = document.getElementById('macopt'+mac)
+            selector_mac.removeChild(opt)
+            if(selector_mac.childElementCount === 1)
+                selector_mac.classList = '';
+            Swal.fire({
+                title: data,
+                icon: 'success',
+                confirmButtonText: 'Ok'
+            });
+        }).fail((e)=>{
+            if(e.status === 400)
+                Swal.fire({
+                    title: 'Something went wrong',
+                    text: e.responseText,
+                    icon: 'error',
+                    confirmButtonText: 'Ok'
+                })
+            });
+
+    })
     
     setInterval(updateSelector, 5000);
     setInterval(updateInterface, 5000);
-
+    setInterval(updateNewRequests, 2000);
     </script>
 
 </body>
