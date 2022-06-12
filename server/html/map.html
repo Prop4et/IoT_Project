@@ -527,8 +527,8 @@
 
                             markers[id].addEventListener('mouseover', () => {
                                 tableRow = document.getElementById('row-id'+id)
-                                tableRow.style.color = "#60019b";
-                                tableRow.style.background= "#c791e9";
+                                tableRow.style.color = "#FFF";
+                                tableRow.style.background= "#60019b";
                             })
 
                             markers[id].addEventListener('mouseout', () => {
@@ -580,7 +580,29 @@
             tbody.removeChild(row);
         }
 
-        setInterval(updateInterface, 5000);
+    listMac = []
+    const updateNewRequests = () => {
+        $.get("requests", function (data) {
+            var macs = data;
+            var flagNew = false;
+            macs.forEach((mac) =>{
+                if(listMac.findIndex((e) => e === mac) === -1){
+                    listMac.push(mac)
+                    flagNew = true;
+                }
+            })
+            if(flagNew)
+                Swal.fire({
+                        title: 'New sensor',
+                        text: 'A sensor is waiting for an id',
+                        icon: 'info',
+                        confirmButtonText: 'Ok'
+                })
+        });
+    } 
+
+    setInterval(updateNewRequests, 2000);
+    setInterval(updateInterface, 5000);
 
     </script>
 </html>

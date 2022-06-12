@@ -2,7 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser')
 const protocols = require('./protocols')
 
-const path = require('path')
+const path = require('path');
+const { default: swal } = require('sweetalert');
 //MQTT
 //protocols.initializeMQTT()
 
@@ -35,23 +36,28 @@ app.get('/map', (request, response) =>{
   response.sendFile(path.join(__dirname, '/html/map.html'))
 })
 
-app.post('/sensor', protocols.connectSensor);
+//sensor setup routes
 app.get('/sensor', protocols.getNewId);
+app.post('/sensor', protocols.connectSensor);
+app.post('/id', protocols.getId);
+app.get('/requests', protocols.getRequests);
 app.post('/pingMqtt', protocols.setPingMQTT);
 
 
 //set parameters from dashboard
 app.post('/update-sensor', protocols.postSensor);
+app.post('/update-prediction', protocols.postStartPrediction)
+app.post('/stop-prediction', protocols.postStopPrediction)
+
 
 app.get('/getSensors', protocols.getSensors);
-
 app.get('/sensorIds', protocols.getSensorIds)
 // Change the 404 message modifing the middleware
 app.use(function(req, res, next) {
   res.status(404).send("Sorry, that route doesn't exist. Have a nice day :)");
 });
 
-//get daily avg humidity and temperature
+
 // start the server in the port 3000 !
 app.listen(8080, '192.168.1.133', function () {
   console.log('App server listening on port 8080.');

@@ -17,7 +17,7 @@ var intervals = {}
 var aliveInterval = {}
 var gpsList= []
 // ----- MQTT setup -----
-const hostMqtt = config.host; // Broker Mosquitto, should i make mine?
+const hostMqtt = config.host; 
 const portMqtt = config.port; // listen port for MQTT
 const clientId = `mqtt_${Math.random().toString(16).slice(3)}`;
 const connectUrl = `mqtt://${hostMqtt}:${portMqtt};` // url for connection
@@ -86,16 +86,6 @@ function sendUpdate(data, id){
       })
     return true;
 }
-
-function getSensors(req, res){
-    res.json(params);
-}
-
-function getSensorIds(req, res){
-    res.json({'ids': Object.keys(params)})
-}
-
-
 
 //-----------------------------------CoAP-------------------------------
 function coapReq(id, ip, sf){
@@ -222,11 +212,10 @@ function isAlive(id, ip){
             req.on('response', (res) => {
             })
     
-            req.on('error', (e) => {
+            /*req.on('error', (e) => {
                 var ip = req.url.hostname;
                 Object.keys(params).forEach( e => {
-                    if(params[e]["ip"] == ip){
-                        console.log('sensor is not alive anymore')
+                    if(params[e]["ip"] == ip && params[e]["isSet"]){
                         clearInterval(aliveInterval[e]);
                         aliveInterval[e] = null;
                         params[e]["isSet"] = false;
@@ -243,25 +232,32 @@ function isAlive(id, ip){
                 })
                 req.destroy();
 
-            })
+            })*/
 
             req.on('timeout', (e) => {
                 var ip = req.url.hostname;
-                Object.keys(params).forEach( e => {
-                    if(params[e]["ip"] == ip){
-                        clearInterval(aliveInterval[e]);
-                        aliveInterval[e] = null;
-                        params[e]["isSet"] = false;
-                        params[e]["prevProto"] = params[e]["proto"]
-                        params[e]["proto"] = 3
+                Object.keys(params).forEach( id => {
+                    if(params[id]["ip"] == ip && params[id]["isSet"]){
+                        clearInterval(aliveInterval[id]);
+                        aliveInterval[id] = null;
+                        params[id]["isSet"] = false;
+                        params[id]["prevProto"] = params[id]["proto"]
+                        params[id]["proto"] = 3
+                        request.post('http://127.0.0.1:5000/removeId/'+id,
+                            function (error, response, body) {
+                                if (!error && response.statusCode == 200) {
+                                    console.log(body);
+                                }
+                            }
+                        )
                     }
                 })
                 req.destroy();
-                console.log('sensor disconnected', e, req.url.hostname);
+                console.log('sensor '+id+' disconnected');
 
             })
             req.end();
-        }, 200000);
+        }, 180000);
     }
 }
 //------------------------------------HTTP-------------------------------
@@ -272,22 +268,25 @@ function isAlive(id, ip){
 function postSensor(req, res){
     console.log('HTTP: Update ...')
     const id = req.body.id;
+    var responseMsg="";
+    var status = 200;
     const data = {
         sampleFrequency: parseInt(req.body.sampleFrequency),
-        gasMin: parseInt(req.body.minGas),
-        gasMax: parseInt(req.body.maxGas),
+        gasMin: parseInt(req.body.gasMin),
+        gasMax: parseInt(req.body.gasMax),
         proto: parseInt(req.body.proto)
     }
     //id unknown
     if(isNaN(id) || !(id in params)) {
         console.log('HTTP Error: ID ' + id + ' not found for the update');
-        res.redirect('/');
-        return;
+        res.status(400);
+        res.send('Invalid ID');
     }
-    console.log("ID: ", id);
     if(data.sampleFrequency < 0 || data.sampleFrequency == undefined || data.sampleFrequency == null || isNaN(data.sampleFrequency)){
         console.log('HTTP Error: Invalid values received for sample frequency');
         console.log('-----------------------------');
+        status = 406;
+        responseMsg += "Using old sample frequency - "
         data.sampleFrequency = params[id].sampleFrequency;
     }else console.log('HTTP received a new value for the sample frequency ' + data.sampleFrequency);
 
@@ -295,20 +294,28 @@ function postSensor(req, res){
         console.log('HTTP Error: min value for gas is higher than maximum, back to default');
         data.gasMin = params[id].gasMin;
         data.gasMax = params[id].gasMax;
+        status = 406;
+        responseMsg += "Using old min and max gas value - "
     }
     if(data.gasMin !== undefined && data.gasMin !== null && !isNaN(data.gasMin)) console.log('HTTP: New value for MIN_GAS_VALUE: ' + data.gasMin);
     else{
         console.log('HTTP Error: invalid minGas value')
+        status = 406;
+        responseMsg += "Using old min value - "
         data.gasMin = params[id].gasMin;
     }
     if(data.gasMax !== undefined && data.gasMax !== null && !isNaN(data.gasMax)) console.log('HTTP: New value for MAX_GAS_VALUE: ' + data.gasMax);
     else{
+        status = 406;
+        responseMsg += "Using old max value - "
         console.log('HTTP Error: invalid minGas value')
         data.gasMax = params[id].gasMax;
     }
 
     if (data.proto == undefined || data.proto == null || isNaN(data.proto) || data.proto < 1 || data.proto > 3) {
         console.log('HTTP Error: Invalid data received, no valid protocol, defaulting to MQTT');
+        status = 406;
+        responseMsg += "Using old protocol value"
         data.proto = params[id].proto;
     }else console.log('HTTP received a new value for the protocol ' + data.proto);
 
@@ -317,11 +324,19 @@ function postSensor(req, res){
     params[id].gasMax = data.gasMax;
     if(params[id].proto != 3)
         params[id].prevProto = params[id].proto;
-    else
+    else{
+        //after pinging on connection it doesn't start automatically, it wait's to start some sort of communication
+        //if someone decides to ping randomly during the usage then it clears the previous interval
+        if(aliveInterval[id])
+            clearInterval(aliveInterval[id]);
         isAlive(id, params[id].ip)
+    }
+    //if i didn't do a ping as the last thing i save the last protocol used
     if(data.proto != 3)
         params[id].prevProto = data.proto;
     params[id].proto = data.proto;
+
+    //clear the coap interval, in case the protocol is coap it restarts with coap req
     if(intervals[id]){
         clearInterval(intervals[id]);
         intervals[id] = null;
@@ -331,30 +346,55 @@ function postSensor(req, res){
     if(data.proto == 2)
             coapReq(id, params[id].ip, params[id].sampleFrequency)
     
-    sendUpdate(data, id);
+    //sendUpdate(data, id);
     
     console.log('..... Update done');
-    res.redirect('/');
+    res.status(status);
+    if(responseMsg == "")
+        responseMsg = "Update done"
+    res.send(responseMsg);
 
 }
 
-ids = {}
+var ids = {}
+var requests = []
 
+function getId(req, res){
+    var mac = req.body.mac
+    var id = req.body.id
+    if(!(mac in ids)){//otherwise it means i assigned it and skipped somhow
+        var v = Object.values(ids)
+        if(v.findIndex( (e) => e === id) === -1 ){//id not assigned
+            requests = requests.filter(e => e !== mac);
+            ids[mac] = id;
+            macResponses[mac].json({"id": id});
+            macResponses[mac].destroy();
+            macResponses[mac] = null;
+            res.sendStatus(200);
+            return;
+        }
+    }
+    res.sendStatus(400);
+
+}
+
+macResponses = {}
 function getNewId(req, res){
     var query = JSON.parse(JSON.stringify(req.query));
-    if(query.mac in ids)
+    var mac = query.mac
+    if(mac in ids)
         res.json({"id": ids[query.mac]})
     else{
-        var id = Object.keys(ids).length
-        ids[query.mac] = id;
-        res.json({"id": id});
+        requests.push(mac);
+        macResponses[mac] = res;
     }
 }
 
 function connectSensor(req, res){
     const id = req.body.id;
-    console.log('HTTP connecting a new sensor with id ' + id, params);
-    if(!(id in params) || !params[id].isSet){
+    console.log('HTTP connecting a new sensor with id ' + id);
+    //the sensor is new or was completely
+    if(!(id in params) || !params[id]["isSet"]){
         params[id] = {
             ip: req.body.ip,
             lat: req.body.lat, 
@@ -364,24 +404,27 @@ function connectSensor(req, res){
             mqttratio: 1,
             coapratio: 1,
             sampleFrequency: 10000,
-            gasMin: 1500,
-            gasMax: 5000,
+            gasMin: 1,
+            gasMax: 5,
             proto: 3, 
+            predWindow: null,
             prevProto: null,
             isSet: false 
         }
+        //save gps coordinates for meteostats, in case two sensors have the same coordinates i can take only one weather forecast
         if( gpsList.findIndex((e) => e[0] === req.body.lat && e[1] === req.body.lon) === -1){
             gpsList.push([req.body.lat, req.body.lon]);
             opweather.forecast(req.body.lat, req.body.lon)
         }
     }else{
+        //the system didn't recognize the sensor as disconnected, tries to do everything in a shorter way
         const data = {
             sampleFrequency: parseInt(params[id].sampleFrequency),
             gasMin: parseInt(params[id].minGas),
             gasMax: parseInt(params[id].maxGas),
             proto: parseInt(params[id].proto)
         }
-        params[id].isSet = true
+        params[id]["isSet"] = true
         isAlive(id, params[id].ip)
         request.post('http://127.0.0.1:5000/newId/'+id,
             function (error, response, body) {
@@ -396,6 +439,8 @@ function connectSensor(req, res){
 
 }
 
+//----------------------------------PING SECTION---------------------------------------------
+//get the mqtt ping from the sensor, computed by the sensor itself
 function setPingMQTT(req, res){
     const id = req.body.id;
     if(id in params){
@@ -408,28 +453,32 @@ function setPingMQTT(req, res){
         res.status(404).send("Sensor uknown");
 }
 
-const server = coap.createServer()
-
-
 async function setPingCoap(id, ip){
     console.log('coap ping started')
+    //get the ping (ms) value
     const ping = await pingCoap(ip);
+    //get the delivery ratio (delivered/lost)
     const ratio = await pktRatioCoap(ip, ping);
+    //set all the properties and go
     params[id]["coapping"] = Math.ceil(ping);
     params[id]["coapratio"] = ratio;
     params[id]["isSet"] = true;
     if(params[id].prevProto)
         params[id].proto = params[id].prevProto;
     console.log("Pings done");
+    //register the new id for the predictions
     request.post('http://127.0.0.1:5000/newId/'+id,
-            function (error, response, body) {
-                if (!error && response.statusCode == 200) {
-                    console.log(body);
-                }
+        function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                console.log(body);
             }
-        );
+        }
+    );
     
 }
+
+//everything needed to be async here because coap and intervals
+//TODO: check that is incremented correctly 
 
 function pktRatioCoap(ip, ping){
     let i = 0;
@@ -437,6 +486,7 @@ function pktRatioCoap(ip, ping){
     if(ping != "disconnected"){
         var int = setInterval(() => {
             if(i<10){
+                i++;
                 pingreq = coap.request({
                     observe: false,
                     hostname: ip,
@@ -449,15 +499,13 @@ function pktRatioCoap(ip, ping){
                 
                 pingreq.on('response', (res) => {
                     n++;
-                    i++;
                 })
-
+                //timeout is too high to lose packets tho
                 pingreq.on('timeout', (res) => {
                     console.log('timeout');
                 })
 
                 pingreq.on('error', (err) => {
-                    i++;
                 })
 
                 pingreq.end();
@@ -477,6 +525,8 @@ function pktRatioCoap(ip, ping){
     }
    
 }
+
+//get the ping (ms)
 function pingCoap(ip){
     var i = 0;
     let tottime = 0;
@@ -511,32 +561,98 @@ function pingCoap(ip){
       });
 }
 
+//function to HTTP POST the flask app for the prediction
+function postStartPrediction(req, res){
+    console.log('HTTP: Start prediction')
+    const id = req.body.id;
+    //check valid id
+    if(!(id in params) || !params[id]["isSet"]){
+        res.status(400);
+        res.send('Invalid ID');
+        return;
+    }
+    //check valid time window
+    const window = req.body.window
+    if(window === '' || isNaN(window)){
+        res.status(400);
+        res.send('Invalid window');
+        return;
+    }
+    //get the response from the app and send it to the frontend
+    request.post('http://127.0.0.1:5000/predict/'+id+'/'+window,
+    function (error, response, body) {
+        if(window >= 15) {
+            res.status(response.statusCode)
+            res.send(body);
+        }else{
+            res.status(406);
+            res.send('Window too short, starting with window = 15');
+        }
+    });
+
+}
+
+//function to HTTP POST the flask app for stopping the prediction
+function postStopPrediction(req, res){
+    console.log('HTTP: Stop prediction')
+    const id = req.body.id;
+    //check for valid id
+    if(!(id in params) || !params[id]["isSet"]){
+        res.status(400);
+        res.send('Invalid ID');
+        return;
+    }
+    request.post('http://127.0.0.1:5000/stoppredict/'+id,
+    //get the response and send it to the frontend
+    function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+            res.status(response.statusCode)
+            res.send(body);
+        }
+    });
+}
+
+//function that calls the interaction with openweather 4 times a day (00.00, 06.00, 12.00, 18.00)
 function dailyForecast(){
     scheduler.call(()=> {
         gpsList.forEach((e) => {
             opweather.forecast(e[0], e[1])
         });
-    }).dailyAt('00:00').run();
+    }).dailyAt('23:59').run();
 
     scheduler.call(()=> {
         gpsList.forEach((e) => {
             opweather.forecast(e[0], e[1])
         });
-    }).dailyAt('06:00').run();
+    }).dailyAt('05:59').run();
 
     scheduler.call(()=> {
         gpsList.forEach((e) => {
             opweather.forecast(e[0], e[1])
         });
-    }).dailyAt('12:00').run();
+    }).dailyAt('11:59').run();
 
     scheduler.call(()=> {
         gpsList.forEach((e) => {
             opweather.forecast(e[0], e[1])
         });
-    }).dailyAt('18:00').run();
+    }).dailyAt('17:59').run();
     
 }
+
+//Functions to communicate with the frontend
+function getSensors(req, res){
+    res.json(params);
+}
+
+function getSensorIds(req, res){
+    res.json({'ids': Object.keys(params)})
+}
+
+function getRequests(req, res){
+    res.json(requests);
+}
+
 
 module.exports = {
     postSensor,
@@ -547,7 +663,11 @@ module.exports = {
     getSensorIds,
     setPingMQTT, 
     getNewId,
-    dailyForecast
+    dailyForecast,
+    postStartPrediction,
+    postStopPrediction,
+    getId,
+    getRequests
 }
 
 

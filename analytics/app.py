@@ -36,9 +36,17 @@ def newId(id):
 def removeId(id):
 	print('sensor disconnected', id)
 	for i in range(0, len(ids)):
+    	#if the id is found inside connected sensors
 		if ids[i] == id:
+    		#if the id was predicting
+			if id in intervalsId:
+    			#stop all the predictions
+				for bucket in buckets:
+					intervalsId[id][bucket].stop()
+			#remove the id from the onlines
 			ids.pop(i)
-	return f'[PRED] removed id '+str(id)
+			return f'[PRED] removed sensor with id '+str(id)
+	return f'[PRED] no sensor to remove'
 
 def create_df(query):
 	result_temp = query_api.query_data_frame(query)
@@ -85,11 +93,13 @@ def prediction(bucket, window, sensorId):
 @app.route('/stoppredict/<int:sensorId>', methods=['POST'])
 def stoppredict(sensorId):
 	if sensorId not in ids:
-		return f'id ' + str(sensorId) + ' not registered'
+		return f'sensor ' + str(sensorId) + ' not registered for prediction'
 	if sensorId not in intervalsId:
-		return f'id ' + str(sensorId) + ' was not predicting'
+		return f'sensor ' + str(sensorId) + ' was not predicting'
 	for bucket in buckets:
-    			intervalsId[sensorId][bucket].stop()
+		intervalsId[sensorId][bucket].stop()
+	return f'prediction sensor ' + str(sensorId) + ' stopped'
+	
 		
 
 @app.route('/predict/<int:sensorId>/<int:window>', methods=['POST'])
