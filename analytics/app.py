@@ -57,7 +57,10 @@ def create_df(query):
 	df_clean = result_temp.copy()
 	df_clean = df_clean.drop(columns=['result', 'table', '_start', '_stop', '_field', '_measurement', 'lat', 'lon', 'sensor'])
 	df_clean = df_clean.rename(columns = {'_time': 'Time', '_value': 'y'})
-	df_clean['Time'] = pd.to_datetime(df_clean['Time'].dt.strftime('%Y-%m-%d %H:%M:%S'))
+	try:
+		df_clean['Time'] = pd.to_datetime(df_clean['Time'].dt.strftime('%Y-%m-%d %H:%M:%S'))
+	except:
+		return None
 	return df_clean
 
 #QUERY HANDLING
