@@ -3,9 +3,8 @@ const bodyParser = require('body-parser')
 const protocols = require('./protocols')
 
 const path = require('path');
-const { default: swal } = require('sweetalert');
 //MQTT
-//protocols.initializeMQTT()
+protocols.initializeMQTT()
 
 const portHttp = 8080
 
