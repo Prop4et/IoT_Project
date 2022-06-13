@@ -32,8 +32,8 @@ int id_int;
 const float lat = 44.501;
 const float lon = 11.350;
 int SAMPLE_FREQ = 10000;
-float MIN_GAS_VALUE = 0;
-float MAX_GAS_VALUE = 5000;
+float MIN_GAS_VALUE = 5;
+float MAX_GAS_VALUE = 15;
 long pingSum = 0; //total rtt of the ping packets
 long timeSend = 0; //time of sending the ping packet
 bool received = true;//received a ping packet or not
@@ -238,8 +238,11 @@ void httpSetup(){
     HTTPClient http;
     String mac = WiFi.macAddress();
     Serial.println("GET request");
+    http.setTimeout(60000);
     http.begin("http://192.168.1.133:8080/sensor?mac="+mac);// Send HTTP GET request
     int httpResponseCode = http.GET();
+    Serial.println(httpResponseCode);
+
     if (httpResponseCode>0) {
         Serial.print("HTTP Response code: ");
         Serial.println(httpResponseCode);
@@ -263,6 +266,7 @@ void httpSetup(){
       else {
         Serial.print("Error code: ");
         Serial.println(httpResponseCode);
+        ESP.restart();
       }
       // Free resources
       http.end();
@@ -317,7 +321,7 @@ void setup(){
     Serial.println("Sensors calibration");
     for(int i = 0; i<10; i++){   
         MQ135.update();
-        MQ2.update(); // Update data, the arduino will read the voltage from the analog pin
+        MQ2.update(); // Update data
         calcR0MQ2 += MQ2.calibrate(RatioMQ2CleanAir);
         calcR0MQ135 += MQ135.calibrate(RatioMQ135CleanAir);
         Serial.print(".");

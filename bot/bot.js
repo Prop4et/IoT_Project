@@ -4,7 +4,7 @@ const { Telegraf } = require('telegraf')
 const influxConfig = require('../server/config').influx
 const botConfig = require('./botconfig')
 
-client  = new InfluxDB({ url: 'http://' + influxConfig.remotehost + ":" + influxConfig.port, token: influxConfig.token })
+client  = new InfluxDB({ url: 'http://' + influxConfig.host + ":" + influxConfig.port, token: influxConfig.token })
 var updateIntervalId = {};
 var alertIntervalId = {};
 bot = new Telegraf(botConfig.token)
@@ -112,8 +112,6 @@ for (const [key, value] of Object.entries(influxConfig.buckets)) {
 
 }
 
-var msg = "";
-
 bot.command('pon', context =>{
     let textBot = context.update.message;
     let paramsArr = textBot.text.split(' ');
@@ -124,7 +122,7 @@ bot.command('pon', context =>{
         return;
     }
     if(time == null || time == undefined || time == " " || isNaN(time)){
-        context.reply('Need to specify a a valid time!');
+        context.reply('Need to specify a valid time!');
         return;
     }else
         time = parseInt(time);
@@ -198,7 +196,7 @@ bot.command('aon', context =>{
             },
             error(e) {
                 console.log(e);
-                context.reply("Sensor is offline, try later!")
+                context.reply("ALERT! offline sensor")
             },
             complete() {
                 if(rowResult == undefined || rowResult == null || rowResult.length === 0){

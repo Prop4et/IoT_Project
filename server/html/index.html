@@ -649,7 +649,7 @@ select, input{
         var selector = document.getElementById('id');
         id = selector.value;
         if(id !== '-' && id !== "-1"){
-            window.open('http://localhost:3000/d/u1ORJBrnz/progetto_iot?orgId='+id+'&from=now-1h&to=now%2B2m', '_blank')
+            window.open('http://192.168.1.133:3000/d/u1ORJBrnz/progetto_iot?orgId='+id+'&from=now-1h&to=now%2B2m', '_blank')
         }
     })    
     
@@ -876,7 +876,7 @@ select, input{
                         
                 if(!data[ids[id]]["isSet"]){
                     console.log('sensor is not set, probably offline')
-                    cell1.innerHTML = "<p style='color:red'>"+ids[id]+"DISCONNECTED</p>";
+                    cell1.innerHTML = "<p style='color:red'>"+ids[id]+"<br>status: NON </p>";
                     cell2.innerHTML = ""
                     cell3.innerHTML = "" 
                     cell4.innerHTML = ""
@@ -884,7 +884,7 @@ select, input{
                     cell6.innerHTML = ""
                     continue;
                 }
-                cell1.innerHTML = ids[id];
+                cell1.innerHTML = ids[id]+ "<p><br><br>status: CON </p>";
 
                 cell2.innerHTML = data[ids[id]]["ip"];
                 if(data[ids[id]]["mqttping"])

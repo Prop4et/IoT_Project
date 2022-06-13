@@ -3,9 +3,8 @@ const bodyParser = require('body-parser')
 const protocols = require('./protocols')
 
 const path = require('path');
-const { default: swal } = require('sweetalert');
 //MQTT
-//protocols.initializeMQTT()
+protocols.initializeMQTT()
 
 const portHttp = 8080
 
@@ -59,8 +58,7 @@ app.use(function(req, res, next) {
 
 
 // start the server in the port 3000 !
-app.listen(8080, 'localhost', function () {
+app.listen(8080, '192.168.1.133', function () {
   console.log('App server listening on port 8080.');
-    //get daily forecast from openweather
     protocols.dailyForecast();
 });
