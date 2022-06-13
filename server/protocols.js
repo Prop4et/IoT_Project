@@ -29,7 +29,6 @@ const subtopics = parser.subtopics;
 
 function initializeMQTT() {
     //initializing MQTT
-    console.log(connectUrl);
     client = mqtt.connect(connectUrl, {
         clientId,
         clean: true,
@@ -212,7 +211,7 @@ function isAlive(id, ip){
             req.on('response', (res) => {
             })
     
-            /*req.on('error', (e) => {
+            req.on('error', (e) => {
                 var ip = req.url.hostname;
                 Object.keys(params).forEach( e => {
                     if(params[e]["ip"] == ip && params[e]["isSet"]){
@@ -232,7 +231,7 @@ function isAlive(id, ip){
                 })
                 req.destroy();
 
-            })*/
+            })
 
             req.on('timeout', (e) => {
                 var ip = req.url.hostname;
@@ -346,7 +345,7 @@ function postSensor(req, res){
     if(data.proto == 2)
             coapReq(id, params[id].ip, params[id].sampleFrequency)
     
-    //sendUpdate(data, id);
+    sendUpdate(data, id);
     
     console.log('..... Update done');
     res.status(status);
@@ -382,8 +381,15 @@ macResponses = {}
 function getNewId(req, res){
     var query = JSON.parse(JSON.stringify(req.query));
     var mac = query.mac
-    if(mac in ids)
-        res.json({"id": ids[query.mac]})
+    if(mac in ids){
+        if(ids[mac] && ids[mac] != null && !(isNaN(ids[mac]))){
+            res.json({"id": ids[query.mac]})
+        }
+        else{
+            requests.push(mac);
+            macResponses[mac] = res;
+        }
+    }
     else{
         requests.push(mac);
         macResponses[mac] = res;
