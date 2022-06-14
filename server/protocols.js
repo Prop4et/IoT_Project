@@ -472,6 +472,11 @@ async function setPingCoap(id, ip){
     if(params[id].prevProto)
         params[id].proto = params[id].prevProto;
     console.log("Pings done");
+    var coapTiming = {
+        ackTimeout: 0.2, 
+        maxRetransmit: 0
+    };
+    coap.updateTiming(coapTiming);
     //register the new id for the predictions
     request.post('http://127.0.0.1:5000/newId/'+id,
         function (error, response, body) {
@@ -518,7 +523,7 @@ function pktRatioCoap(ip, ping){
             }
         }, ping)
     
-        setTimeout(() => clearInterval(int), ping*10+1000);
+        setTimeout(() => clearInterval(int), ping+10000);
         return new Promise((resolve, reject) => {
             setTimeout(() => {
               resolve(n/i);
