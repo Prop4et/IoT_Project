@@ -39,5 +39,3 @@
 - Jump wires
 - Breadboard
 - VSCode IDE
-
-Photo will be added here 
