@@ -896,7 +896,6 @@ select, input{
                 else
                     cell4.innerHTML = "-"
                 cell5.innerHTML = data[ids[id]]["sampleFrequency"]+"[ms]</br>"+(data[ids[id]]["proto"] === 1 ? 'MQTT' : data[ids[id]]["proto"] === 2 ? 'CoAP' : "<p style='color: red;'>NOT SET</p>");
-                console.log(data[ids[id]]["predWindow"]) 
                 cell6.innerHTML = data[ids[id]]["predWindow"] ? data[ids[id]]["predWindow"]+"s" : 'No prediction' 
             }
 
