@@ -66,7 +66,7 @@ def create_df(query):
 #QUERY HANDLING
 def build_query(sensor_id, bucket):
     return 'from(bucket:"'+bucket+'")' \
-			' |> range(start: -8h)'\
+			' |> range(start: -4h)'\
 			' |> filter(fn: (r) => r._measurement == "val" and r._field == "value" and r.sensor == ''"'+str(sensor_id)+'"'')'
 
 def writeDB(predictions, last_time, sensor_id, bucket):
