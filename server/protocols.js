@@ -489,7 +489,6 @@ async function setPingCoap(id, ip){
 }
 
 //everything needed to be async here because coap and intervals
-//TODO: check that is incremented correctly 
 
 function pktRatioCoap(ip, ping){
     let i = 0;
@@ -592,7 +591,9 @@ function postStartPrediction(req, res){
     //get the response from the app and send it to the frontend
     request.post('http://127.0.0.1:5000/predict/'+id+'/'+window,
     function (error, response, body) {
+        params[id]["predWindow"] = 15;
         if(window >= 15) {
+            params[id]["predWindow"] = window;
             res.status(response.statusCode)
             res.send(body);
         }else{
