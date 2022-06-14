@@ -510,8 +510,8 @@ select, input{
                                     <option value="3" id="coapopt">ping</option>
                                 </select>
                             </td>
-                            <td> <input type="number"  placeholder="1" min="1" name="gasMin" id="gasMin"> </td>
-                            <td> <input type="number"  placeholder="15" min="2" name="gasMax" id="gasMax"> </td>
+                            <td> <input type="number" step="any" placeholder="1" min="1" name="gasMin" id="gasMin"> </td>
+                            <td> <input type="number" step="any"  placeholder="15" min="2" name="gasMax" id="gasMax"> </td>
                             <td> <input type="number"  placeholder="2000" min="2000"  name="sampleFrequency" id="sf"> </td>
                             <td> <i class='bx bx-link-external' id="link-grafana" title="Go to grafana dashboard"></i> </td>
                         </tr>
@@ -884,7 +884,7 @@ select, input{
                     cell6.innerHTML = ""
                     continue;
                 }
-                cell1.innerHTML = ids[id]+ "<p><br><br>status: CON </p>";
+                cell1.innerHTML = ids[id]+ "<p> CON </p>";
 
                 cell2.innerHTML = data[ids[id]]["ip"];
                 if(data[ids[id]]["mqttping"])
