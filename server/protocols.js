@@ -472,6 +472,11 @@ async function setPingCoap(id, ip){
     if(params[id].prevProto)
         params[id].proto = params[id].prevProto;
     console.log("Pings done");
+    var coapTiming = {
+        ackTimeout: 0.2, 
+        maxRetransmit: 0
+    };
+    coap.updateTiming(coapTiming);
     //register the new id for the predictions
     request.post('http://127.0.0.1:5000/newId/'+id,
         function (error, response, body) {
@@ -484,7 +489,6 @@ async function setPingCoap(id, ip){
 }
 
 //everything needed to be async here because coap and intervals
-//TODO: check that is incremented correctly 
 
 function pktRatioCoap(ip, ping){
     let i = 0;
@@ -518,7 +522,7 @@ function pktRatioCoap(ip, ping){
             }
         }, ping)
     
-        setTimeout(() => clearInterval(int), ping*10+1000);
+        setTimeout(() => clearInterval(int), ping+10000);
         return new Promise((resolve, reject) => {
             setTimeout(() => {
               resolve(n/i);
@@ -587,7 +591,9 @@ function postStartPrediction(req, res){
     //get the response from the app and send it to the frontend
     request.post('http://127.0.0.1:5000/predict/'+id+'/'+window,
     function (error, response, body) {
+        params[id]["predWindow"] = 15;
         if(window >= 15) {
+            params[id]["predWindow"] = window;
             res.status(response.statusCode)
             res.send(body);
         }else{
